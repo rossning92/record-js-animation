@@ -15,14 +15,14 @@ let renderer, stage;
 
     let options = {
       /* Recording options */
-      format: 'webm',
+      format: 'png',
       framerate: '60FPS',
       start: function () { startRecording(); },
       stop: function () { stopRecording(); }
     }
 
     var gui = new dat.gui.GUI();
-    gui.add(options, 'format', ['gif', 'webm-mediarecorder', 'webm']);
+    gui.add(options, 'format', ['gif', 'webm-mediarecorder', 'webm', 'png']);
     gui.add(options, 'framerate', ['10FPS', '30FPS', '60FPS', '120FPS']);
     gui.add(options, 'start');
     gui.add(options, 'stop');
@@ -47,7 +47,7 @@ let renderer, stage;
 
 
       // CREATE SOME RECTANGLES FOR THE WIPE
-      var DURATION = 300
+      var DURATION = 5000
       var INTERVAL = 5
       var SINGLE_RECT_DURATION = 500
       let setPointColors = ["0xf39909", "0xa51981", "0xff1981", "0xf30009"];
@@ -104,7 +104,8 @@ let renderer, stage;
 
     function resetAnimation() {
       // Custom PIXI application
-      renderer = new PIXI.Renderer({ width: 600, height: 600, antialias: true, backgroundColor: "0xffffff" });
+      // backgroundColor: "0xffffff"
+      renderer = new PIXI.Renderer({ width: 600, height: 600, antialias: true, transparent: true });
       renderer.autoResize = false;
       // renderer.resize(window.innerWidth, window.innerHeight);
 
