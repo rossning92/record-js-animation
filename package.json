@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "@pixi/filter-motion-blur": "^3.0.3",
     "@tweenjs/tween.js": "18",
     "ccapture.js": "^1.1.0",
     "css-loader": "^3.4.2",
