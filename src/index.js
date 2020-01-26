@@ -101,7 +101,7 @@ function setupScene(width, height) {
 
   if (1) {
     camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 5000);
-    camera.position.set(0, 0, 8);
+    camera.position.set(0, 0, 10);
   } else {
     const aspect = width / height;
     const frustumSize = 1;
@@ -110,17 +110,17 @@ function setupScene(width, height) {
 
 
 
-  const light0 = new THREE.PointLight(0xffffff, 1, 0);
-  light0.position.set(0, 200, 0);
-  scene.add(light0);
+  // const light0 = new THREE.PointLight(0xffffff, 1, 0);
+  // light0.position.set(0, 200, 0);
+  // scene.add(light0);
 
-  const light1 = new THREE.PointLight(0xffffff, 1, 0);
-  light1.position.set(100, 200, 100);
-  scene.add(light1);
+  // const light1 = new THREE.PointLight(0xffffff, 1, 0);
+  // light1.position.set(100, 200, 100);
+  // scene.add(light1);
 
-  const light2 = new THREE.PointLight(0xffffff, 1, 0);
-  light2.position.set(-100, -200, -100);
-  scene.add(light2);
+  // const light2 = new THREE.PointLight(0xffffff, 1, 0);
+  // light2.position.set(-100, -200, -100);
+  // scene.add(light2);
 
   scene.add(new THREE.AmbientLight(0x000000));
 
@@ -151,7 +151,7 @@ function animate(time) {
 function createText({
   text = 'text',
   color = '0x006699',
-  fontSize = 1.0
+  fontSize = 10.0
 } = {}) {
   var loader = new THREE.FontLoader();
   loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
@@ -233,16 +233,15 @@ function createText({
 }
 
 setupScene(WIDTH, HEIGHT);
-createText({ text: '3 minute' });
-createText({ text: '\nprogramming' });
+// createText({ text: '3 minute' });
+// createText({ text: '\nprogramming' });
 // createLine();
 createAnimatedLines();
 
 {
-  const text = new AnimatedText3D('Confetti', { color: '#ffffff', size: 1.0 });
+  const text = new AnimatedText3D('Confetti');
   // text.position.x -= text.basePosition * 0.5;
   scene.add(text);
-  text.show();
 }
 
 requestAnimationFrame(animate);

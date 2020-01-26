@@ -1,73 +1,76 @@
-import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader } from 'three';
-import { TimelineLite, Back } from 'gsap';
+import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBufferGeometry } from 'three';
 
 import fontFile from '../utils/fontFile';
+import gsap from 'gsap';
 
 const fontLoader = new FontLoader();
 const font = fontLoader.parse(fontFile);
 
 export default class AnimatedText3D extends Object3D {
-  constructor(text, { size = 0.8, letterSpacing = 0.03, color = '#000000', duration = 0.6, opacity = 1, wireframe = false } = {}) {
+  constructor(text, {
+    size = 1.5,
+    letterSpacing = 0.03,
+    color = '#ffffff',
+    duration = 0.5,
+    opacity = 1,
+    wireframe = false
+  } = {}) {
     super();
 
     this.basePosition = 0;
     this.size = size;
 
-    const letters = [...text];
-    letters.forEach((letter) => {
-      if (letter === ' ') {
-        this.basePosition += size * 0.5;
-      } else {
-        const geom = new ShapeGeometry(
-          font.generateShapes(letter, size, 1),
-        );
-        geom.computeBoundingBox();
-        const mat = new MeshBasicMaterial({
-          color,
-          opacity: 0,
-          transparent: true,
-          wireframe,
-        });
-        const mesh = new Mesh(geom, mat);
+    var shapes = font.generateShapes(text, size);
 
-        mesh.position.x = this.basePosition;
-        this.basePosition += geom.boundingBox.max.x + letterSpacing;
-        this.add(mesh);
-      }
+    // Compute xMid
+    let geometry = new ShapeBufferGeometry(shapes);
+    geometry.computeBoundingBox();
+    let xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
+
+    // const letters = [...text];
+    shapes.forEach((shape) => {
+
+      const geometry = new ShapeBufferGeometry(shape);
+
+      // Shift letter to position whole text into center
+      geometry.translate(xMid, 0, 0);
+
+
+      // mesh
+      const mat = new MeshBasicMaterial({
+        color,
+        // opacity: 0,
+        transparent: true,
+        wireframe,
+      });
+      const mesh = new Mesh(geometry, mat);
+
+      // mesh.position.x = this.basePosition;
+      // this.basePosition += geometry.boundingBox.max.x + letterSpacing;
+      this.add(mesh);
+
     });
 
-    // Timeline
-    this.tm = new TimelineLite({ paused: true });
-    this.tm.set({}, {}, `+=${duration * 1.1}`)
-    this.children.forEach((letter) => {
-      const data = {
+    this.children.forEach((letter, i) => {
+      const vals = {
         opacity: 0,
-        position: -0.5,
+        position: -size * 2,
+        rotation: -Math.PI / 2,
       };
-      this.tm.to(data, duration, {
-        opacity,
+      gsap.to(vals, duration, {
+        opacity: opacity,
         position: 0,
-        ease: Back.easeOut.config(2),
+        rotation: 0,
+
+        ease: "back.out(1)",  // https://greensock.com/docs/v3/Eases
         onUpdate: () => {
-          letter.material.opacity = data.opacity;
-          letter.position.y = data.position;
-          letter.position.z = data.position * 2;
-          letter.rotation.x = data.position * 2;
-        }
+          letter.material.opacity = vals.opacity;
+          letter.position.y = vals.position;
+          letter.position.z = vals.position * 2;
+          letter.rotation.x = vals.rotation;
+        },
+        delay: i * 0.02
       }, `-=${duration - 0.03}`);
     });
-
-    // Bind
-    this.show = this.show.bind(this);
-    this.hide = this.hide.bind(this);
   }
-
-  show() {
-    this.tm.play();
-  }
-
-  hide() {
-    this.tm.reverse();
-  }
-
 }
