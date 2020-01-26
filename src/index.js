@@ -1,20 +1,37 @@
 import './myfile.css';
 // const WebMWriter = require('webm-writer');
 // import CCapture from 'ccapture.js';
-
 import * as dat from 'dat.gui';
 import TWEEN from '@tweenjs/tween.js';
-
-
 import * as THREE from 'three';
 import { MeshLine, MeshLineMaterial } from 'three.meshline'
+import AnimatedText3D from './objects/AnimatedText3D';
 
-
+const WIDTH = 1920;
+const HEIGHT = 1080;
 
 let capturer = null;
 let renderer;
 let scene;
 let camera;
+let pallete = [
+  '#1abc9c',
+  '#2ecc71',
+  '#3498db',
+  '#9b59b6',
+  '#34495e',
+  '#16a085',
+  '#27ae60',
+  '#2980b9',
+  '#8e44ad',
+  '#2c3e50',
+  '#f1c40f',
+  '#e67e22',
+  '#e74c3c',
+  '#f39c12',
+  '#d35400',
+  '#c0392b'
+];
 
 
 let options = {
@@ -61,6 +78,7 @@ function stopRecording() {
 
 
 function render() {
+  // lineGenerator.update();
   renderer.render(scene, camera);
 }
 
@@ -79,12 +97,18 @@ function setupScene(width, height) {
   document.body.appendChild(renderer.domElement);
 
   scene = new THREE.Scene();
-  // camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 5000);
-  // camera.position.set(0, 0, 0);
+  scene.background = new THREE.Color(pallete[4]);
 
-  const aspect = width / height;
-  const frustumSize = 1;
-  camera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0, 1000);
+  if (1) {
+    camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 5000);
+    camera.position.set(0, 0, 8);
+  } else {
+    const aspect = width / height;
+    const frustumSize = 1;
+    camera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0, 1000);
+  }
+
+
 
   const light0 = new THREE.PointLight(0xffffff, 1, 0);
   light0.position.set(0, 200, 0);
@@ -126,7 +150,8 @@ function animate(time) {
 
 function createText({
   text = 'text',
-  color = '0x006699'
+  color = '0x006699',
+  fontSize = 1.0
 } = {}) {
   var loader = new THREE.FontLoader();
   loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
@@ -148,7 +173,7 @@ function createText({
       // overdraw: 0.5
     });
 
-    var shapes = font.generateShapes(text, 0.1);
+    var shapes = font.generateShapes(text, fontSize);
     var geometry = new THREE.ShapeBufferGeometry(shapes);
     geometry.computeBoundingBox();
     xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
@@ -156,20 +181,24 @@ function createText({
 
     // make shape ( N.B. edge view not visible )
     textMesh = new THREE.Mesh(geometry, matLite);
-    textMesh.position.set(-1.0, 0, -500);
+    textMesh.position.set(-fontSize, 0, -100);
+
     scene.add(textMesh);
 
 
     // Animation
     new TWEEN.Tween(matLite)
-      .to({ opacity: 1.0 }, 1000)
-      .easing(TWEEN.Easing.Exponential.Out)
+      .to({ opacity: 1.0 }, 500)
+      .easing(TWEEN.Easing.Cubic.Out)
       .start();
 
     new TWEEN.Tween(textMesh.position)
-      .to({ x: 0 }, 1000)
-      .easing(TWEEN.Easing.Exponential.Out)
+      .to({ x: 0 }, 500)
+      .easing(TWEEN.Easing.Elastic.Out)
       .start();
+
+
+
 
 
     // make line shape ( N.B. edge view remains visible )
@@ -203,11 +232,19 @@ function createText({
   }); //end load function
 }
 
-setupScene(800, 800);
+setupScene(WIDTH, HEIGHT);
 createText({ text: '3 minute' });
 createText({ text: '\nprogramming' });
-createLine();
-resize(800, 800);
+// createLine();
+createAnimatedLines();
+
+{
+  const text = new AnimatedText3D('Confetti', { color: '#ffffff', size: 1.0 });
+  // text.position.x -= text.basePosition * 0.5;
+  scene.add(text);
+  text.show();
+}
+
 requestAnimationFrame(animate);
 
 
@@ -226,25 +263,116 @@ function createLine() {
 }
 
 function generateLinearGradientTexture() {
-	var size = 512;
+  var size = 512;
 
-	// create canvas
-	var canvas = document.createElement( 'canvas' );
-	canvas.width = size;
-	canvas.height = size;
+  // create canvas
+  var canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
 
-	// get context
-	var context = canvas.getContext( '2d' );
+  // get context
+  var context = canvas.getContext('2d');
 
-	// draw gradient
-	context.rect( 0, 0, size, size );
-	var gradient = context.createLinearGradient( 0, 0, size, size );
-	gradient.addColorStop(0, '#ff0000'); // light blue 
-	gradient.addColorStop(1, '#00ff00'); // dark blue
-	context.fillStyle = gradient;
-	context.fill();
+  // draw gradient
+  context.rect(0, 0, size, size);
+  var gradient = context.createLinearGradient(0, 0, size, size);
+  gradient.addColorStop(0, '#ff0000'); // light blue 
+  gradient.addColorStop(1, '#00ff00'); // dark blue
+  context.fillStyle = gradient;
+  context.fill();
 
-  var texture = new THREE.Texture( canvas );
+  var texture = new THREE.Texture(canvas);
   texture.needsUpdate = true; // important!
   return texture;
+}
+
+
+import LineGenerator from './objects/LineGenerator'
+import { TimelineLite } from 'gsap';
+import getRandomFloat from './utils/getRandomFloat';
+import getRandomItem from './utils/getRandomItem';
+function createAnimatedLines() {
+
+  /**
+   * * *******************
+   * * LIGNES
+   * * *******************
+   */
+  const COLORS = ['#FDFFFC', '#FDFFFC', '#FDFFFC', '#FDFFFC', '#EA526F', '#71b9f2'].map((col) => new THREE.Color(col));
+  const STATIC_PROPS = {
+    nbrOfPoints: 4,
+    speed: 0.03,
+    turbulence: new THREE.Vector3(1, 0.8, 1),
+    orientation: new THREE.Vector3(1, 0, 0),
+    transformLineMethod: p => {
+      const a = ((0.5 - Math.abs(0.5 - p)) * 3);
+      return a;
+    }
+  };
+
+  const POSITION_X = -3.2;
+  const LENGTH_MIN = 5;
+  const LENGTH_MAX = 7;
+  class CustomLineGenerator extends LineGenerator {
+    start() {
+      const currentFreq = this.frequency;
+      this.frequency = 1;
+      setTimeout(() => {
+        this.frequency = currentFreq;
+      }, 500);
+      super.start();
+    }
+
+    addLine() {
+      const line = super.addLine({
+        width: getRandomFloat(0.1, 0.3),
+        length: getRandomFloat(LENGTH_MIN, LENGTH_MAX),
+        visibleLength: getRandomFloat(0.05, 0.8),
+        position: new THREE.Vector3(
+          POSITION_X,
+          0.3,
+          getRandomFloat(-1, 1),
+        ),
+        color: getRandomItem(COLORS),
+      });
+      line.rotation.x = getRandomFloat(0, Math.PI * 2);
+
+      if (Math.random() > 0.1) {
+        const line = super.addLine({
+          width: getRandomFloat(0.05, 0.1),
+          length: getRandomFloat(5, 10),
+          visibleLength: getRandomFloat(0.05, 0.5),
+          speed: 0.05,
+          position: new THREE.Vector3(
+            getRandomFloat(-9, 5),
+            getRandomFloat(-5, 5),
+            getRandomFloat(-10, 6),
+          ),
+          color: getRandomItem(COLORS),
+        });
+        line.rotation.x = getRandomFloat(0, Math.PI * 2);
+      }
+    }
+  }
+  var lineGenerator = new CustomLineGenerator({
+    frequency: 0.1,
+  }, STATIC_PROPS);
+  scene.add(lineGenerator);
+
+  /**
+   * * *******************
+   * * START
+   * * *******************
+   */
+  // Show
+  // const tlShow = new TimelineLite({ delay: 0.2 });
+  // tlShow.to('.overlay', 0.6, { autoAlpha: 0 });
+  // // tlShow.fromTo(engine.lookAt, 3, { y: -4 }, { y: 0, ease: Power3.easeOut }, 0);
+  // tlShow.add(lineGenerator.start, '-=2.5');
+  // // tlShow.add(() => {
+  // //   scene.add(text);
+  // //   text.show();
+  // // }, '-=1.6');
+
+  lineGenerator.start();
 }
