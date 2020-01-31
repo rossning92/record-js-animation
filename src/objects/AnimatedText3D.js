@@ -2,9 +2,11 @@ import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBuff
 
 import fontFile from '../utils/fontFile';
 import gsap from 'gsap';
+// import font2 from '../utils/cn.json'
 
 const fontLoader = new FontLoader();
 const font = fontLoader.parse(fontFile);
+// const font = fontLoader.load('fonts/cn.json');
 
 export default class AnimatedText3D extends Object3D {
   constructor(text, {

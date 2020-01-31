@@ -6,6 +6,7 @@ import TWEEN from '@tweenjs/tween.js';
 import * as THREE from 'three';
 import { MeshLine, MeshLineMaterial } from 'three.meshline'
 import AnimatedText3D from './objects/AnimatedText3D';
+import Stars from './objects/Stars';
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
@@ -242,6 +243,10 @@ createAnimatedLines();
   const text = new AnimatedText3D('Confetti');
   // text.position.x -= text.basePosition * 0.5;
   scene.add(text);
+}
+
+{
+  scene.add(new Stars());
 }
 
 requestAnimationFrame(animate);

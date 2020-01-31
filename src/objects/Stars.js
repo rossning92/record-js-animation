@@ -2,7 +2,7 @@ import {
   SphereBufferGeometry, MeshBasicMaterial, Mesh, Object3D,
 } from 'three';
 
-import getRandomFloat from 'utils/getRandomFloat';
+import getRandomFloat from '../utils/getRandomFloat';
 
 const starGeometry = new SphereBufferGeometry(0.5, 2, 2);
 const starMaterial = new MeshBasicMaterial({ color: 0xECF0F1, transparent: true, opacity: 0.3 });
@@ -32,7 +32,7 @@ class Star extends Mesh {
  * * MAIN
  * * *******************
  */
-export default class Starts extends Object3D {
+export default class Stars extends Object3D {
   constructor(nbrOfStars = 300) {
     super();
 
