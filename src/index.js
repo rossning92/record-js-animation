@@ -7,6 +7,11 @@ import * as THREE from 'three';
 import { MeshLine, MeshLineMaterial } from 'three.meshline'
 import AnimatedText3D from './objects/AnimatedText3D';
 import Stars from './objects/Stars';
+import gsap, { TimelineLite } from 'gsap';
+
+
+gsap.ticker.remove(gsap.updateRoot);
+
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
@@ -138,6 +143,8 @@ function setupScene(width, height) {
 }
 
 function animate(time) {
+  // console.log(time / 1000);
+  gsap.updateRoot(time / 1000);
   TWEEN.update(time);
 
   /* Loop this function */
@@ -240,7 +247,7 @@ setupScene(WIDTH, HEIGHT);
 createAnimatedLines();
 
 {
-  const text = new AnimatedText3D('Confetti');
+  const text = new AnimatedText3D('编程三分钟');
   // text.position.x -= text.basePosition * 0.5;
   scene.add(text);
 }
@@ -292,7 +299,6 @@ function generateLinearGradientTexture() {
 
 
 import LineGenerator from './objects/LineGenerator'
-import { TimelineLite } from 'gsap';
 import getRandomFloat from './utils/getRandomFloat';
 import getRandomItem from './utils/getRandomItem';
 function createAnimatedLines() {

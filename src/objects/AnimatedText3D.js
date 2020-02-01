@@ -1,6 +1,9 @@
-import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBufferGeometry } from 'three';
+import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBufferGeometry, Group, Color, DoubleSide } from 'three';
 
-import fontFile from '../utils/fontFile';
+
+import { SVGLoader } from '../utils/SVGLoader'
+
+import fontFile from '../utils/sourceHan3000';
 import gsap from 'gsap';
 // import font2 from '../utils/cn.json'
 
@@ -29,50 +32,103 @@ export default class AnimatedText3D extends Object3D {
     geometry.computeBoundingBox();
     let xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
 
-    // const letters = [...text];
-    shapes.forEach((shape) => {
+    if (0) {
+      // Text shapes
+      // const letters = [...text];
+      shapes.forEach((shape) => {
 
-      const geometry = new ShapeBufferGeometry(shape);
+        const geometry = new ShapeBufferGeometry(shape);
 
-      // Shift letter to position whole text into center
-      geometry.translate(xMid, 0, 0);
+        // Shift letter to position whole text into center
+        geometry.translate(xMid, 0, 0);
 
 
-      // mesh
-      const mat = new MeshBasicMaterial({
-        color,
-        // opacity: 0,
-        transparent: true,
-        wireframe,
+        // mesh
+        const mat = new MeshBasicMaterial({
+          color,
+          // opacity: 0,
+          transparent: true,
+          wireframe,
+        });
+        const mesh = new Mesh(geometry, mat);
+
+        // mesh.position.x = this.basePosition;
+        // this.basePosition += geometry.boundingBox.max.x + letterSpacing;
+        this.add(mesh);
+
       });
-      const mesh = new Mesh(geometry, mat);
+    }
 
-      // mesh.position.x = this.basePosition;
-      // this.basePosition += geometry.boundingBox.max.x + letterSpacing;
-      this.add(mesh);
 
-    });
+    // Text outlines
+    // make line shape ( N.B. edge view remains visible )
+    {
+      let holeShapes = [];
 
-    this.children.forEach((letter, i) => {
-      const vals = {
-        opacity: 0,
-        position: -size * 2,
-        rotation: -Math.PI / 2,
-      };
-      gsap.to(vals, duration, {
-        opacity: opacity,
-        position: 0,
-        rotation: 0,
+      for (let i = 0; i < shapes.length; i++) {
+        let shape = shapes[i];
+        if (shape.holes && shape.holes.length > 0) {
+          for (let j = 0; j < shape.holes.length; j++) {
+            let hole = shape.holes[j];
+            holeShapes.push(hole);
+          }
+        }
+      }
 
-        ease: "back.out(1)",  // https://greensock.com/docs/v3/Eases
-        onUpdate: () => {
-          letter.material.opacity = vals.opacity;
-          letter.position.y = vals.position;
-          letter.position.z = vals.position * 2;
-          letter.rotation.x = vals.rotation;
-        },
-        delay: i * 0.02
-      }, `-=${duration - 0.03}`);
-    });
+      let lineColor = new Color(color);
+      let matDark = new MeshBasicMaterial({
+        color: color,
+        side: DoubleSide
+      });
+
+      shapes.push.apply(shapes, holeShapes);
+
+      let style = SVGLoader.getStrokeStyle(0.05, lineColor.getStyle());
+      let strokeText = new Group();
+
+      for (let i = 0; i < shapes.length; i++) {
+        let shape = shapes[i];
+        let points = shape.getPoints();
+        let geometry = SVGLoader.pointsToStroke(points, style);
+
+        geometry.translate(xMid, 0, 0);
+
+        let strokeMesh = new Mesh(geometry, matDark);
+        strokeText.add(strokeMesh);
+      }
+      this.add(strokeText);
+    }
+
+
+
+    if (0) {
+      // Animation
+      this.children.forEach((letter, i) => {
+        letter.material.opacity = 0;
+      });
+
+      this.children.forEach((letter, i) => {
+        const vals = {
+          opacity: 0,
+          position: -size * 2,
+          rotation: -Math.PI / 2,
+        };
+        gsap.to(vals, duration, {
+          opacity: opacity,
+          position: 0,
+          rotation: 0,
+
+          ease: "back.out(1)",  // https://greensock.com/docs/v3/Eases
+          onUpdate: () => {
+            letter.material.opacity = vals.opacity;
+            letter.position.y = vals.position;
+            letter.position.z = vals.position * 2;
+            letter.rotation.x = vals.rotation;
+          },
+          delay: i * 0.02 + 1
+        }, `-=${duration - 0.03}`);
+      });
+    }
+
   }
 }
