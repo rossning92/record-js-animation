@@ -1,10 +1,11 @@
-import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBufferGeometry, Group, Color, DoubleSide } from 'three';
+import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBufferGeometry, Group, Color, DoubleSide, Geometry, Vector3, Vector2 } from 'three';
 
 
 import { SVGLoader } from '../utils/SVGLoader'
 
 import fontFile from '../utils/sourceHan3000';
 import gsap from 'gsap';
+import { MeshLine, MeshLineMaterial } from 'three.meshline';
 // import font2 from '../utils/cn.json'
 
 const fontLoader = new FontLoader();
@@ -63,6 +64,7 @@ export default class AnimatedText3D extends Object3D {
     // Text outlines
     // make line shape ( N.B. edge view remains visible )
     {
+      // Hole shapes contains all the holes in text glyphs
       let holeShapes = [];
 
       for (let i = 0; i < shapes.length; i++) {
@@ -89,6 +91,56 @@ export default class AnimatedText3D extends Object3D {
       for (let i = 0; i < shapes.length; i++) {
         let shape = shapes[i];
         let points = shape.getPoints();
+
+        {
+          let points3D = points.map(p => new Vector3(p.x, p.y, 0));
+          let geometry = new Geometry();
+          points3D.forEach(p => geometry.vertices.push(p));
+          geometry.translate(xMid, 0, 0);
+
+
+
+          let line = new MeshLine();
+          line.setGeometry(geometry);
+
+          const dashArray = 2;
+          // Start to 0 and will be decremented to show the dashed line
+          const dashOffset = 0.5;
+          // The ratio between that is visible and other
+          const dashRatio = 0.5;
+
+          const material = new MeshLineMaterial({
+            useMap: false,
+            lineWidth: 0.05,
+            dashArray,
+            dashOffset,
+            dashRatio, // The ratio between that is visible or not for each dash
+            opacity,
+            transparent: true,
+            depthWrite: false,
+            color: '#000000',
+            // TODO: don't hard code value here.
+            resolution: new Vector2(1920, 1080),
+            sizeAttenuation: !false, // Line width constant regardless distance
+          });
+
+
+          let mesh = new Mesh(line.geometry, material); // this syntax could definitely be improved!
+          this.add(mesh);
+
+
+          // Text outline animation
+          const vals = { svg: 0 };
+          gsap.to(vals, 5, {
+            svg: 1,
+            onUpdate: (x) => {
+              material.uniforms.dashOffset.value = vals.svg;
+            },
+          });
+
+          continue;
+        }
+
         let geometry = SVGLoader.pointsToStroke(points, style);
 
         geometry.translate(xMid, 0, 0);
