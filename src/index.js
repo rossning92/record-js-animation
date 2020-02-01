@@ -107,7 +107,28 @@ function setupScene(width, height) {
 
   if (1) {
     camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 5000);
-    camera.position.set(0, 0, 10);
+    camera.position.set(-5, -5, 20);
+    camera.lookAt(new Vector3(0,0,0));
+
+
+    // Camera animation
+    if (1) {
+      const vals = { x: -5, y: -5, z: 20 };
+      gsap.to(camera.position, {
+        x: 0,
+        y: 0,
+        z: 10,
+        onUpdate: () => {
+          // camera.position.set(vals.x, vals.y, vals.z);
+          camera.lookAt(new Vector3(0, 0, 0));
+        },
+        duration: 2.5,
+        ease: "back.out(1)",
+        // delay: 2.5,
+      });
+    }
+
+
   } else {
     const aspect = width / height;
     const frustumSize = 1;
@@ -258,6 +279,8 @@ createAnimatedLines();
 
 requestAnimationFrame(animate);
 
+// startRecording();
+
 
 function createLine() {
   var geometry = new THREE.Geometry();
@@ -301,6 +324,7 @@ function generateLinearGradientTexture() {
 import LineGenerator from './objects/LineGenerator'
 import getRandomFloat from './utils/getRandomFloat';
 import getRandomItem from './utils/getRandomItem';
+import { Vector3 } from 'three';
 function createAnimatedLines() {
 
   /**
