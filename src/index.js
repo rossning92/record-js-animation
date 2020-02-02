@@ -9,6 +9,11 @@ import AnimatedText3D from './objects/AnimatedText3D';
 import Stars from './objects/Stars';
 import gsap, { TimelineLite } from 'gsap';
 
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass.js';
+import { MotionBlurPass } from './utils/MotionBlurPass';
+
 
 gsap.ticker.remove(gsap.updateRoot);
 
@@ -18,6 +23,7 @@ const HEIGHT = 1080;
 
 let capturer = null;
 let renderer;
+let composer;
 let scene;
 let camera;
 let pallete = [
@@ -85,7 +91,8 @@ function stopRecording() {
 
 function render() {
   // lineGenerator.update();
-  renderer.render(scene, camera);
+  // renderer.render(scene, camera);
+  composer.render();
 }
 
 
@@ -107,19 +114,23 @@ function setupScene(width, height) {
 
   if (1) {
     camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 5000);
-    camera.position.set(-5, -5, 20);
-    camera.lookAt(new Vector3(0,0,0));
+    camera.position.set(-2, -2, 20);
+    camera.lookAt(new Vector3(0, 0, 0));
 
 
     // Camera animation
     if (1) {
-      const vals = { x: -5, y: -5, z: 20 };
-      gsap.to(camera.position, {
+      const vals = {
+        x: -2,
+        y: -2,
+        z: 20,
+      };
+      gsap.to(vals, {
         x: 0,
         y: 0,
         z: 10,
         onUpdate: () => {
-          // camera.position.set(vals.x, vals.y, vals.z);
+          camera.position.set(vals.x, vals.y, vals.z);
           camera.lookAt(new Vector3(0, 0, 0));
         },
         duration: 2.5,
@@ -151,22 +162,50 @@ function setupScene(width, height) {
 
   scene.add(new THREE.AmbientLight(0x000000));
 
-  // sphere = new THREE.Mesh(
-  //   new THREE.SphereGeometry(5, 16, 16),
-  //   new THREE.MeshPhongMaterial({
-  //     color: 0x156289,
-  //     emissive: 0x072534,
-  //     side: THREE.DoubleSide,
-  //     shading: THREE.FlatShading
-  //   })
-  // );
-  // scene.add(sphere);
+  // Torus
+  if (0) {
+    let geometry = new THREE.TorusKnotBufferGeometry(2.5, 1, 150, 40);
+    let material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    let mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    mesh.onBeforeRender = () => {
+      mesh.rotation.y += 0.05;
+    };
+  }
+
+
+  let renderScene = new RenderPass(scene, camera);
+
+  let options = {
+    samples: 15,
+    expandGeometry: 0,
+    interpolateGeometry: 1,
+    smearIntensity: 1,
+    blurTransparent: false,
+    renderCameraBlur: true
+  };
+  let motionPass = new MotionBlurPass(scene, camera, options);
+  // motionPass.debug.display = 2;
+
+  composer = new EffectComposer(renderer);
+  composer.setSize(WIDTH, HEIGHT);
+  composer.addPass(renderScene);
+  // composer.addPass(motionPass);
+  motionPass.renderToScreen = true;
 }
 
+var start;
 function animate(time) {
+  if (!start) {
+    start = time;
+  };
+  let timestamp = time - start;
+
+
   // console.log(time / 1000);
-  gsap.updateRoot(time / 1000);
-  TWEEN.update(time);
+  gsap.updateRoot(timestamp / 1000);
+  TWEEN.update(timestamp);
 
   /* Loop this function */
   requestAnimationFrame(animate);
@@ -274,8 +313,12 @@ createAnimatedLines();
 }
 
 {
-  scene.add(new Stars());
+  const stars = new Stars()
+  stars.position.z = -100;
+  scene.add(stars);
 }
+
+
 
 requestAnimationFrame(animate);
 

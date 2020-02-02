@@ -1,4 +1,4 @@
-import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBufferGeometry, Group, Color, DoubleSide, Geometry, Vector3, Vector2 } from 'three';
+import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBufferGeometry, Group, Color, DoubleSide, Geometry, Vector3, Vector2, BufferGeometry } from 'three';
 
 
 import { SVGLoader } from '../utils/SVGLoader'
@@ -125,6 +125,7 @@ export default class AnimatedText3D extends Object3D {
           });
 
 
+            // new BufferGeometry().fromGeometry(line.geometry);
           let mesh = new Mesh(line.geometry, material); // this syntax could definitely be improved!
           this.add(mesh);
 
