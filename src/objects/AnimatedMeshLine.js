@@ -1,5 +1,5 @@
 import {
-  Mesh, Vector3, SplineCurve, Geometry, Color,
+  Mesh, Vector3, SplineCurve, Geometry, Color, Clock,
 } from 'three';
 import { MeshLine, MeshLineMaterial } from 'three.meshline';
 
@@ -100,6 +100,8 @@ export default class AnimatedMeshLine extends Mesh {
 
     // Bind
     this.update = this.update.bind(this);
+
+    this.clock = new Clock();
   }
 
 
@@ -110,7 +112,7 @@ export default class AnimatedMeshLine extends Mesh {
    */
   update() {
     // Increment the dash
-    this.material.uniforms.dashOffset.value -= this.speed;
+    this.material.uniforms.dashOffset.value -= this.speed * this.clock.getDelta() * 100;
 
     // TODO make that into a decorator
     // Reduce the opacity then the dash start to desapear

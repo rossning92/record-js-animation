@@ -13,7 +13,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass.js';
 import { MotionBlurPass } from './utils/MotionBlurPass';
-
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { SSAARenderPass } from 'three/examples/jsm/postprocessing/SSAARenderPass.js';
 
 gsap.ticker.remove(gsap.updateRoot);
 
@@ -103,9 +104,7 @@ function resize(width, height) {
 }
 
 function setupScene(width, height) {
-  renderer = new THREE.WebGLRenderer({
-    antialias: true
-  });
+  renderer = new THREE.WebGLRenderer();
   renderer.setSize(width, height);
   document.body.appendChild(renderer.domElement);
 
@@ -160,6 +159,24 @@ function setupScene(width, height) {
   // light2.position.set(-100, -200, -100);
   // scene.add(light2);
 
+  if (1) { // Create lights
+    let shadowLight = new THREE.DirectionalLight(0xffffff, 2);
+    shadowLight.position.set(20, 0, 10);
+    shadowLight.castShadow = true;
+    shadowLight.shadowDarkness = 0.01;
+    scene.add(shadowLight);
+
+    let light = new THREE.DirectionalLight(0xffffff, .5);
+    light.position.set(-20, 0, 20);
+    scene.add(light);
+
+    let backLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    backLight.position.set(0, 0, -20);
+    scene.add(backLight);
+  }
+
+
+
   scene.add(new THREE.AmbientLight(0x000000));
 
   // Torus
@@ -177,22 +194,43 @@ function setupScene(width, height) {
 
   let renderScene = new RenderPass(scene, camera);
 
-  let options = {
-    samples: 15,
-    expandGeometry: 0,
-    interpolateGeometry: 1,
-    smearIntensity: 1,
-    blurTransparent: false,
-    renderCameraBlur: true
-  };
-  let motionPass = new MotionBlurPass(scene, camera, options);
-  // motionPass.debug.display = 2;
+
 
   composer = new EffectComposer(renderer);
   composer.setSize(WIDTH, HEIGHT);
   composer.addPass(renderScene);
-  // composer.addPass(motionPass);
-  motionPass.renderToScreen = true;
+
+
+  if (0) { // Motion blur pass
+    let options = {
+      samples: 15,
+      expandGeometry: 0,
+      interpolateGeometry: 1,
+      smearIntensity: 1,
+      blurTransparent: false,
+      renderCameraBlur: true
+    };
+    let motionPass = new MotionBlurPass(scene, camera, options);
+    // motionPass.debug.display = 2;
+    // composer.addPass(motionPass);
+    // motionPass.renderToScreen = true;
+  }
+
+  if (0) { // Bloom pass
+    let bloomPass = new UnrealBloomPass(new THREE.Vector2(WIDTH, HEIGHT), 1.5, 0.4, 0.85);
+    composer.addPass(bloomPass);
+  }
+
+  const AA_QUALITY = 0;
+  if (AA_QUALITY == 1) {
+    composer.addPass(createFxaaPass(renderer));
+  }
+  else if (AA_QUALITY == 2) {
+    let ssaaRenderPass = new SSAARenderPass(scene, camera);
+    ssaaRenderPass.unbiased = true;
+    ssaaRenderPass.samples = 8;
+    composer.addPass(ssaaRenderPass);
+  }
 }
 
 var start;
@@ -453,3 +491,80 @@ function createAnimatedLines() {
 
   lineGenerator.start();
 }
+
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+function createFxaaPass(renderer) {
+  let fxaaPass = new ShaderPass(FXAAShader);
+
+  let pixelRatio = renderer.getPixelRatio();
+  fxaaPass.material.uniforms['resolution'].value.x = 1 / (WIDTH * pixelRatio);
+  fxaaPass.material.uniforms['resolution'].value.y = 1 / (HEIGHT * pixelRatio);
+
+  return fxaaPass;
+}
+
+
+function createTextParticles(text = "Hello Codepen ♥") {
+  // Inspared by https://codepen.io/rachsmith/pen/LpZbmZ
+
+  let canvas = document.createElement("canvas");
+  let ww = canvas.width = 160;
+  let wh = canvas.height = 40;
+
+  let ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.font = "bold " + (ww / 10) + "px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(text, ww / 2, wh / 2);
+
+  let data = ctx.getImageData(0, 0, ww, wh).data;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = "screen";
+
+  for (let i = 0; i < ww; i += 1) {
+    for (let j = 0; j < wh; j += 1) {
+      if (data[((i + j * ww) * 4) + 3] > 150) {
+
+
+
+        {
+          let geometry = new THREE.BoxGeometry();
+          //let geometry = new THREE.SphereBufferGeometry(1, 2, 2);
+          for (let i = 0; i < geometry.vertices.length; i++) {
+            geometry.vertices[i].x += (-1 + Math.random() * 0.5) * 0.2;
+            geometry.vertices[i].y += (-1 + Math.random() * 0.5) * 0.2;
+            geometry.vertices[i].z += (-1 + Math.random() * 0.5) * 0.2;
+          }
+
+
+          let material = new THREE.MeshLambertMaterial({
+            color: pallete[i % pallete.length],
+            shading: THREE.FlatShading
+          });
+          let mesh = new THREE.Mesh(geometry, material);
+          const S = 5;
+          mesh.position.set(i / S, -j / S, 0);
+          mesh.scale.set(0.5 / S, 0.5 / S, 0.5 / S);
+          scene.add(mesh);
+
+          let clock = new THREE.Clock();
+          const vx = Math.random();
+          const vy = Math.random();
+          mesh.onBeforeRender = () => {
+            let delta = clock.getDelta();
+            mesh.rotation.x += vx * delta;
+            mesh.rotation.y += vy * delta;
+          };
+        }
+
+
+      }
+    }
+  }
+
+
+}
+
+// createTextParticles();

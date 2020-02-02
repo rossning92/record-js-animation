@@ -33,7 +33,7 @@ export default class AnimatedText3D extends Object3D {
     geometry.computeBoundingBox();
     let xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
 
-    if (0) {
+    if (1) {
       // Text shapes
       // const letters = [...text];
       shapes.forEach((shape) => {
@@ -63,7 +63,7 @@ export default class AnimatedText3D extends Object3D {
 
     // Text outlines
     // make line shape ( N.B. edge view remains visible )
-    {
+    if (0) {
       // Hole shapes contains all the holes in text glyphs
       let holeShapes = [];
 
@@ -92,7 +92,7 @@ export default class AnimatedText3D extends Object3D {
         let shape = shapes[i];
         let points = shape.getPoints();
 
-        {
+        if (0) {
           let points3D = points.map(p => new Vector3(p.x, p.y, 0));
           let geometry = new Geometry();
           points3D.forEach(p => geometry.vertices.push(p));
@@ -131,14 +131,17 @@ export default class AnimatedText3D extends Object3D {
 
 
           // Text outline animation
-          const vals = { svg: 0 };
-          gsap.to(vals, 5, {
-            svg: 1,
-            onUpdate: (x) => {
-              material.uniforms.dashOffset.value = vals.svg;
-            },
-          });
-
+          if (1)
+          {
+            const vals = { svg: 0 };
+            gsap.to(vals, 5, {
+              svg: 1,
+              onUpdate: (x) => {
+                material.uniforms.dashOffset.value = vals.svg;
+              },
+            });
+          }
+          
           continue;
         }
 
@@ -154,7 +157,7 @@ export default class AnimatedText3D extends Object3D {
 
 
 
-    if (0) {
+    if (1) {
       // Animation
       this.children.forEach((letter, i) => {
         letter.material.opacity = 0;
