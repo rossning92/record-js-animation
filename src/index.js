@@ -159,21 +159,7 @@ function setupScene(width, height) {
   // light2.position.set(-100, -200, -100);
   // scene.add(light2);
 
-  if (1) { // Create lights
-    let shadowLight = new THREE.DirectionalLight(0xffffff, 2);
-    shadowLight.position.set(20, 0, 10);
-    shadowLight.castShadow = true;
-    shadowLight.shadowDarkness = 0.01;
-    scene.add(shadowLight);
 
-    let light = new THREE.DirectionalLight(0xffffff, .5);
-    light.position.set(-20, 0, 20);
-    scene.add(light);
-
-    let backLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    backLight.position.set(0, 0, -20);
-    scene.add(backLight);
-  }
 
 
 
@@ -508,6 +494,44 @@ function createFxaaPass(renderer) {
 function createTextParticles(text = "Hello Codepen ♥") {
   // Inspared by https://codepen.io/rachsmith/pen/LpZbmZ
 
+  if (1) { // Create lights
+    let shadowLight = new THREE.DirectionalLight(0xffffff, 2);
+    shadowLight.position.set(20, 0, 10);
+    shadowLight.castShadow = true;
+    shadowLight.shadowDarkness = 0.01;
+    scene.add(shadowLight);
+
+    let light = new THREE.DirectionalLight(0xffffff, .5);
+    light.position.set(-20, 0, 20);
+    scene.add(light);
+
+    let backLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    backLight.position.set(0, 0, -20);
+    scene.add(backLight);
+  }
+
+  if (0) {
+    var light = new THREE.SpotLight(0xFFFFFF, 3);
+    light.position.set(5, 5, 2);
+    light.castShadow = true;
+    light.shadow.mapSize.width = 10000;
+    light.shadow.mapSize.height = light.shadow.mapSize.width;
+    light.penumbra = 0.5;
+
+    var lightBack = new THREE.PointLight(0x0FFFFF, 1);
+    lightBack.position.set(0, -3, -1);
+
+    scene.add(light);
+    scene.add(lightBack);
+
+    var rectSize = 2;
+    var intensity = 100;
+    var rectLight = new THREE.RectAreaLight(0x0FFFFF, intensity, rectSize, rectSize);
+    rectLight.position.set(0, 0, 1);
+    rectLight.lookAt(0, 0, 0);
+    scene.add(rectLight);
+  }
+
   let canvas = document.createElement("canvas");
   let ww = canvas.width = 160;
   let wh = canvas.height = 40;
@@ -523,6 +547,7 @@ function createTextParticles(text = "Hello Codepen ♥") {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.globalCompositeOperation = "screen";
 
+  let n = 0;
   for (let i = 0; i < ww; i += 1) {
     for (let j = 0; j < wh; j += 1) {
       if (data[((i + j * ww) * 4) + 3] > 150) {
@@ -530,19 +555,33 @@ function createTextParticles(text = "Hello Codepen ♥") {
 
 
         {
-          let geometry = new THREE.BoxGeometry();
-          //let geometry = new THREE.SphereBufferGeometry(1, 2, 2);
-          for (let i = 0; i < geometry.vertices.length; i++) {
-            geometry.vertices[i].x += (-1 + Math.random() * 0.5) * 0.2;
-            geometry.vertices[i].y += (-1 + Math.random() * 0.5) * 0.2;
-            geometry.vertices[i].z += (-1 + Math.random() * 0.5) * 0.2;
-          }
+          // let geometry = new THREE.BoxGeometry();
+          // for (let i = 0; i < geometry.vertices.length; i++) {
+          //   geometry.vertices[i].x += (-1 + Math.random() * 0.5) * 0.2;
+          //   geometry.vertices[i].y += (-1 + Math.random() * 0.5) * 0.2;
+          //   geometry.vertices[i].z += (-1 + Math.random() * 0.5) * 0.2;
+          // }
 
+          // let material = new THREE.MeshLambertMaterial({
+          //   color: pallete[i % pallete.length],
+          //   shading: THREE.FlatShading
+          // });
 
-          let material = new THREE.MeshLambertMaterial({
-            color: pallete[i % pallete.length],
-            shading: THREE.FlatShading
+          // let material = new THREE.MeshPhysicalMaterial({color:0xFFFFFF, side:THREE.DoubleSide});
+          // let geometry = new THREE.CircleGeometry(1, 5);
+
+          var material = new THREE.MeshStandardMaterial({
+            shading: THREE.FlatShading,
+            color: pallete[n++ % pallete.length],
+            transparent: false,
+            opacity: 1,
+            wireframe: false
           });
+          var geometry = new THREE.IcosahedronGeometry(1);
+
+
+
+
           let mesh = new THREE.Mesh(geometry, material);
           const S = 5;
           mesh.position.set(i / S, -j / S, 0);
