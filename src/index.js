@@ -15,7 +15,7 @@ import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass.js';
 import { MotionBlurPass } from './utils/MotionBlurPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { SSAARenderPass } from 'three/examples/jsm/postprocessing/SSAARenderPass.js';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 
 
 gsap.ticker.remove(gsap.updateRoot);
@@ -116,12 +116,12 @@ function setupScene(width, height) {
 
   if (1) {
     camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 5000);
-    camera.position.set(-2, -2, 20);
+    camera.position.set(0, 0, 10);
     camera.lookAt(new Vector3(0, 0, 0));
 
 
     // Camera animation
-    if (1) {
+    if (0) {
       const vals = {
         x: -2,
         y: -2,
@@ -148,7 +148,7 @@ function setupScene(width, height) {
     camera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0, 1000);
   }
 
-  cameraControls = new OrbitControls( camera, renderer.domElement );
+  cameraControls = new OrbitControls(camera, renderer.domElement);
 
 
 
@@ -240,7 +240,7 @@ function animate(time) {
   requestAnimationFrame(animate);
 
   cameraControls.update();
-  
+
   render();
 
   /* Record Video */
@@ -341,6 +341,32 @@ setupScene(WIDTH, HEIGHT);
   const text = new AnimatedText3D('编程三分钟');
   // text.position.x -= text.basePosition * 0.5;
   scene.add(text);
+
+  const t2 = new AnimatedText3D('{');
+  t2.translateY(1);
+  const t3 = new AnimatedText3D('}');
+  t3.translateY(-1);
+  t2.scale.set(0.5,0.5,0.5);
+  t3.scale.set(0.5,0.5,0.5);
+
+  // t3.rotation.z = Math.PI / 2;
+  // t2.rotation.z = Math.PI / 2;
+
+  scene.add(t2);
+  scene.add(t3);
+
+  gsap.to(t2.position, {
+    x: -5,
+    duration: 1,
+  });
+
+  gsap.to(t3.position, {
+    x: 5,
+    duration: 1,
+  });
+
+  gsap.fromTo(t2.children[0].material, { opacity: 0 }, { opacity: 1, duration: 1, ease: "power.out" });
+  gsap.fromTo(t3.children[0].material, { opacity: 0 }, { opacity: 1, duration: 1, ease: "power.out" });
 }
 
 if (0) {

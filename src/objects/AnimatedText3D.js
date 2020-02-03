@@ -3,7 +3,7 @@ import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBuff
 
 import { SVGLoader } from '../utils/SVGLoader'
 
-import fontFile from '../utils/sourceHan3000';
+import fontFile from '../fonts/sourceHanBold3000';
 import gsap from 'gsap';
 import { MeshLine, MeshLineMaterial } from 'three.meshline';
 // import font2 from '../utils/cn.json'
