@@ -15,6 +15,8 @@ import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass.js';
 import { MotionBlurPass } from './utils/MotionBlurPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { SSAARenderPass } from 'three/examples/jsm/postprocessing/SSAARenderPass.js';
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
+
 
 gsap.ticker.remove(gsap.updateRoot);
 
@@ -27,6 +29,7 @@ let renderer;
 let composer;
 let scene;
 let camera;
+let cameraControls;
 let pallete = [
   '#1abc9c',
   '#2ecc71',
@@ -145,6 +148,8 @@ function setupScene(width, height) {
     camera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0, 1000);
   }
 
+  cameraControls = new OrbitControls( camera, renderer.domElement );
+
 
 
   // const light0 = new THREE.PointLight(0xffffff, 1, 0);
@@ -234,6 +239,8 @@ function animate(time) {
   /* Loop this function */
   requestAnimationFrame(animate);
 
+  cameraControls.update();
+  
   render();
 
   /* Record Video */
@@ -328,7 +335,7 @@ setupScene(WIDTH, HEIGHT);
 // createText({ text: '3 minute' });
 // createText({ text: '\nprogramming' });
 // createLine();
-createAnimatedLines();
+// createAnimatedLines();
 
 {
   const text = new AnimatedText3D('编程三分钟');
@@ -336,7 +343,7 @@ createAnimatedLines();
   scene.add(text);
 }
 
-{
+if (0) {
   const stars = new Stars()
   stars.position.z = -100;
   scene.add(stars);
@@ -494,6 +501,9 @@ function createFxaaPass(renderer) {
 function createTextParticles(text = "Hello Codepen ♥") {
   // Inspared by https://codepen.io/rachsmith/pen/LpZbmZ
 
+  // Lab Raycaster 2.0
+  // https://codepen.io/vcomics/pen/OZPayy
+
   if (1) { // Create lights
     let shadowLight = new THREE.DirectionalLight(0xffffff, 2);
     shadowLight.position.set(20, 0, 10);
@@ -572,7 +582,7 @@ function createTextParticles(text = "Hello Codepen ♥") {
 
           var material = new THREE.MeshStandardMaterial({
             shading: THREE.FlatShading,
-            color: pallete[n++ % pallete.length],
+            color: pallete[n % pallete.length],
             transparent: false,
             opacity: 1,
             wireframe: false
@@ -596,6 +606,25 @@ function createTextParticles(text = "Hello Codepen ♥") {
             mesh.rotation.x += vx * delta;
             mesh.rotation.y += vy * delta;
           };
+
+
+          if (1) {
+            mesh.scale.set(0, 0, 0);
+            const params = {
+              scale: 0,
+            }
+            gsap.to(params, {
+              scale: (0.5 + (Math.random() - 0.5) * 0.5) / S,
+              duration: 5,
+              ease: "elastic.out(1, 0.1)",
+              onUpdate: () => {
+                mesh.scale.set(params.scale, params.scale, params.scale);
+              },
+              delay: 2 + Math.random(),
+            });
+          }
+
+          n++;
         }
 
 
@@ -607,3 +636,71 @@ function createTextParticles(text = "Hello Codepen ♥") {
 }
 
 // createTextParticles();
+
+
+function createRingAnimation() {
+  const SEGMENT = 100;
+  const RADIUS = 1;
+
+  let geometry = new THREE.Geometry();
+  for (let j = 0; j < 2 * Math.PI; j += 2 * Math.PI / SEGMENT) {
+    let v = new THREE.Vector3(Math.sin(j) * RADIUS, Math.cos(j) * RADIUS, 0);
+    geometry.vertices.push(v);
+  }
+
+  let line = new MeshLine();
+
+  line.setGeometry(geometry);
+
+  const material = new MeshLineMaterial({
+    lineWidth: 0.3,
+
+    dashArray: 1,
+    dashOffset: 0,
+    dashRatio: 0.8, // The ratio between that is visible or not for each dash
+
+    opacity: 1,
+    transparent: true,
+    color: '#ffffff',
+    // TODO: don't hard code value here.
+    resolution: new THREE.Vector2(WIDTH, HEIGHT),
+    sizeAttenuation: !false, // Line width constant regardless distance
+  });
+
+
+  let mesh = new THREE.Mesh(line.geometry, material); // this syntax could definitely be improved!
+  scene.add(mesh);
+
+  mesh.position.z = -1;
+
+  mesh.scale.set(4, 4, 4);
+
+
+
+  // Animation
+  if (1) {
+    let vals = {
+      start: 0,
+      end: 0,
+    };
+    let tl = gsap.timeline({
+      defaults: { duration: 1, ease: "power3.out" },
+      onUpdate: () => {
+        material.uniforms.dashOffset.value = vals.start;
+        // console.log(vals.end - vals.start);
+        material.uniforms.dashRatio.value = 1 - (vals.end - vals.start);
+      },
+    });
+    tl
+      .to(vals, {
+        end: 1,
+        duration: 2,
+      })
+      .to(vals, {
+        start: 1,
+        duration: 2,
+      }, "<0.5");
+  }
+}
+
+// createRingAnimation();

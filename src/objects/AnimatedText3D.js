@@ -157,7 +157,7 @@ export default class AnimatedText3D extends Object3D {
 
 
 
-    if (1) {
+    if (0) {
       // Animation
       this.children.forEach((letter, i) => {
         letter.material.opacity = 0;
