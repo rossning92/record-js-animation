@@ -11,12 +11,12 @@ import gsap, { TimelineLite } from 'gsap';
 
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass.js';
+import { GlitchPass } from './utils/GlitchPass';
 import { MotionBlurPass } from './utils/MotionBlurPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { SSAARenderPass } from 'three/examples/jsm/postprocessing/SSAARenderPass.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-
+import { WaterPass } from './utils/WaterPass';
 
 gsap.ticker.remove(gsap.updateRoot);
 
@@ -207,12 +207,30 @@ function setupScene(width, height) {
     // motionPass.renderToScreen = true;
   }
 
-  if (0) { // Bloom pass
+  if (1) {
+    const waterPass = new WaterPass();
+    waterPass.factor = 0.1;
+    composer.addPass(waterPass);
+    // alert();
+
+    const glitchPass = new GlitchPass();
+    composer.addPass(glitchPass);
+
+    setTimeout(() => {
+      glitchPass.factor = 1;
+    }, 1000);
+
+    setTimeout(() => {
+      glitchPass.factor = 0;
+    }, 1200);
+  }
+
+  if (1) { // Bloom pass
     let bloomPass = new UnrealBloomPass(new THREE.Vector2(WIDTH, HEIGHT), 1.5, 0.4, 0.85);
     composer.addPass(bloomPass);
   }
 
-  const AA_QUALITY = 0;
+  const AA_QUALITY = 1;
   if (AA_QUALITY == 1) {
     composer.addPass(createFxaaPass(renderer));
   }
@@ -338,16 +356,17 @@ setupScene(WIDTH, HEIGHT);
 // createAnimatedLines();
 
 {
-  const text = new AnimatedText3D('编程三分钟');
+  const text = new AnimatedText3D('编程三分钟', { color: pallete[1] });
   // text.position.x -= text.basePosition * 0.5;
   scene.add(text);
+  addAnimation(text);
 
   const t2 = new AnimatedText3D('{');
-  t2.translateY(1);
+  t2.position.set(-5.5, 1, 0);
   const t3 = new AnimatedText3D('}');
-  t3.translateY(-1);
-  t2.scale.set(0.5,0.5,0.5);
-  t3.scale.set(0.5,0.5,0.5);
+  t3.position.set(-0.9, -0.5, 0);
+  t2.scale.set(0.5, 0.5, 0.5);
+  t3.scale.set(0.5, 0.5, 0.5);
 
   // t3.rotation.z = Math.PI / 2;
   // t2.rotation.z = Math.PI / 2;
@@ -355,18 +374,9 @@ setupScene(WIDTH, HEIGHT);
   scene.add(t2);
   scene.add(t3);
 
-  gsap.to(t2.position, {
-    x: -5,
-    duration: 1,
-  });
 
-  gsap.to(t3.position, {
-    x: 5,
-    duration: 1,
-  });
-
-  gsap.fromTo(t2.children[0].material, { opacity: 0 }, { opacity: 1, duration: 1, ease: "power.out" });
-  gsap.fromTo(t3.children[0].material, { opacity: 0 }, { opacity: 1, duration: 1, ease: "power.out" });
+  addAnimation(t2);
+  addAnimation(t3);
 }
 
 if (0) {
@@ -513,6 +523,7 @@ function createAnimatedLines() {
 
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+
 function createFxaaPass(renderer) {
   let fxaaPass = new ShaderPass(FXAAShader);
 
@@ -730,3 +741,21 @@ function createRingAnimation() {
 }
 
 // createRingAnimation();
+
+function addAnimation(object3d) {
+  gsap.from(object3d.position, {
+    x: 0,
+    duration: 0.5,
+    delay: 0.5,
+    ease: "power3.out",
+  });
+
+  let material;
+  if (object3d.children.length > 0) {
+    material = object3d.children[0].material;
+  } else {
+    material = object3d.material;
+  }
+
+  gsap.fromTo(material, { opacity: 0 }, { opacity: 1, duration: 1, ease: "power.out", delay: 0.5 });
+}
