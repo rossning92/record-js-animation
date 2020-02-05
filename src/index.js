@@ -1,4 +1,4 @@
-import './myfile.css';
+// import './myfile.css';
 // const WebMWriter = require('webm-writer');
 // import CCapture from 'ccapture.js';
 import * as dat from 'dat.gui';
@@ -759,3 +759,8 @@ function addAnimation(object3d) {
 
   gsap.fromTo(material, { opacity: 0 }, { opacity: 1, duration: 1, ease: "power.out", delay: 0.5 });
 }
+
+export default {
+  scene,
+  camera,
+};
