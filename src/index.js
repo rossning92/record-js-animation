@@ -764,3 +764,79 @@ export default {
   scene,
   camera,
 };
+
+function createCanvas({
+  width = 64,
+  height = 64
+} = {}) {
+  let canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+function canvasDrawTriangle() {
+  let canvas = createCanvas();
+  var ctx = canvas.getContext('2d');
+
+  // Filled triangle
+  ctx.beginPath();
+  ctx.moveTo(10, 25);
+  ctx.lineTo(50, 60);
+  ctx.lineTo(45, 5);
+  ctx.fill();
+
+  // // Stroked triangle
+  // ctx.beginPath();
+  // ctx.moveTo(125, 125);
+  // ctx.lineTo(125, 45);
+  // ctx.lineTo(45, 125);
+  // ctx.closePath();
+  // ctx.stroke();
+
+  let data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  return data;
+}
+
+function createRect({
+  color = 0xffff00
+} = {}) {
+  var geometry = new THREE.PlaneGeometry(1, 1);
+  var material = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, transparent: true, opacity: 1.0 });
+  var plane = new THREE.Mesh(geometry, material);
+  // scene.add(plane);
+  return plane;
+}
+
+let triangleData = canvasDrawTriangle();
+let rectGroup = new THREE.Group();
+const SIZE = 64;
+for (let i = 0; i < SIZE; i++) {
+  for (let j = 0; j < SIZE; j++) {
+
+    let color;
+    if (triangleData[((i + j * SIZE) * 4) + 3] > 150) {
+      color = i * 4 + (j * 4) * 256
+    } else {
+      color = 0;
+    }
+
+    if (color > 0) {
+      let rect = createRect({ color: color });
+      rect.position.set(j - SIZE * 0.5, i - SIZE * 0.5, -2);
+      rectGroup.add(rect);
+    }
+
+
+    // rect.material.opacity = 0.5;
+
+  }
+}
+
+gsap.fromTo(rectGroup.children.map(x => x.material),
+  { opacity: 0 },
+  { opacity: 1, duration: 1, delay: 2.0, stagger: 0.001 });
+
+rectGroup.scale.set(0.2, 0.2, 0.2);
+scene.add(rectGroup);
+
