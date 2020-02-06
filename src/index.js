@@ -15,6 +15,7 @@ import { GlitchPass } from './utils/GlitchPass';
 import { MotionBlurPass } from './utils/MotionBlurPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { SSAARenderPass } from 'three/examples/jsm/postprocessing/SSAARenderPass.js';
+import { TAARenderPass } from 'three/examples/jsm/postprocessing/TAARenderPass.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { WaterPass } from './utils/WaterPass';
 
@@ -233,12 +234,16 @@ function setupScene(width, height) {
   const AA_QUALITY = 1;
   if (AA_QUALITY == 1) {
     composer.addPass(createFxaaPass(renderer));
-  }
-  else if (AA_QUALITY == 2) {
+  } else if (AA_QUALITY == 2) {
     let ssaaRenderPass = new SSAARenderPass(scene, camera);
     ssaaRenderPass.unbiased = true;
     ssaaRenderPass.samples = 8;
     composer.addPass(ssaaRenderPass);
+  } else if (AA_QUALITY == 3) {
+    let taaRenderPass = new TAARenderPass(scene, camera);
+    taaRenderPass.unbiased = false;
+    taaRenderPass.sampleLevel = 1;
+    composer.addPass(taaRenderPass);
   }
 }
 
