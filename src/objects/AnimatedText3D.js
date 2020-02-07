@@ -1,7 +1,7 @@
 import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBufferGeometry, Group, Color, DoubleSide, Geometry, Vector3, Vector2, BufferGeometry } from 'three';
 
 
-import { SVGLoader } from '../utils/SVGLoader'
+import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
 
 import fontFile from '../fonts/sourceHanBold3000';
 import gsap from 'gsap';

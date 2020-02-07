@@ -791,17 +791,11 @@ function canvasDrawTriangle() {
   ctx.lineTo(45, 5);
   ctx.fill();
 
-  // // Stroked triangle
-  // ctx.beginPath();
-  // ctx.moveTo(125, 125);
-  // ctx.lineTo(125, 45);
-  // ctx.lineTo(45, 125);
-  // ctx.closePath();
-  // ctx.stroke();
-
   let data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
   return data;
 }
+
+
 
 function createRect({
   color = 0xffff00
@@ -820,7 +814,7 @@ for (let i = 0; i < SIZE; i++) {
   for (let j = 0; j < SIZE; j++) {
 
     let color;
-    if (triangleData[((i + j * SIZE) * 4) + 3] > 150) {
+    if (triangleData[((i * SIZE + j) * 4) + 3] > 150) {
       color = i * 4 + (j * 4) * 256
     } else {
       color = 0;
@@ -845,3 +839,47 @@ gsap.fromTo(rectGroup.children.map(x => x.material),
 rectGroup.scale.set(0.2, 0.2, 0.2);
 scene.add(rectGroup);
 
+
+import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
+function createLine3D({
+  color = 0xffffff,
+  points = [],
+  lineWidth = 0.1,
+} = {}) {
+
+  if (points.length == 0) {
+    points.push(new THREE.Vector3(-1.73, -1, 0));
+    points.push(new THREE.Vector3(1.73, -1, 0));
+    points.push(new THREE.Vector3(0, 2, 0));
+    points.push(points[0]);
+  }
+
+
+  let lineColor = new THREE.Color(0xffffff);
+  let style = SVGLoader.getStrokeStyle(lineWidth, lineColor.getStyle());
+  let geometry = SVGLoader.pointsToStroke(points, style);
+
+  let material = new THREE.MeshBasicMaterial({
+    color,
+    side: THREE.DoubleSide
+  });
+
+  let mesh = new THREE.Mesh(geometry, material);
+  return mesh;
+}
+
+if (1) {
+  const triangleStroke = createLine3D({
+    points: [
+      new THREE.Vector3(10, 25, 0),
+      new THREE.Vector3(50, 60, 0),
+      new THREE.Vector3(45, 5, 0),
+      new THREE.Vector3(10, 25, 0),
+    ],
+    lineWidth: 1,
+    color: 0x00ff00,
+  });
+  triangleStroke.position.set(-6.4, -6.4, 0);
+  triangleStroke.scale.set(0.2, 0.2, 0.2);
+  scene.add(triangleStroke);
+}
