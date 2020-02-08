@@ -19,6 +19,8 @@ import { TAARenderPass } from 'three/examples/jsm/postprocessing/TAARenderPass.j
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { WaterPass } from './utils/WaterPass';
 
+import Stats from 'three/examples/jsm/libs/stats.module.js';
+
 gsap.ticker.remove(gsap.updateRoot);
 
 
@@ -26,6 +28,7 @@ const WIDTH = 1920;
 const HEIGHT = 1080;
 const AA_METHOD = 'fxaa';
 
+let stats;
 let capturer = null;
 let renderer;
 let composer;
@@ -112,13 +115,20 @@ function setupScene(width, height) {
   let options = {
     // antialias: true,
   };
-  if (AA_METHOD == 'mxaa') {
+  if (AA_METHOD == 'msaa') {
     options.antialias = true;
   }
 
   renderer = new THREE.WebGLRenderer(options);
   renderer.setSize(width, height);
   document.body.appendChild(renderer.domElement);
+
+  {
+
+    stats = new Stats();
+    // stats.showPanel(1); // 0: fps, 1: ms, 2: mb, 3+: custom
+    document.body.appendChild(stats.dom);
+  }
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(pallete[4]);
@@ -222,7 +232,7 @@ function setupScene(width, height) {
   //   composer.addPass(bloomPass);
   // }
 
-  if (1) { // Water pass
+  if (0) { // Water pass
     const waterPass = new WaterPass();
     waterPass.factor = 0.1;
     composer.addPass(waterPass);
@@ -279,6 +289,8 @@ function animate(time) {
   cameraControls.update();
 
   render();
+
+  stats.update();
 
   /* Record Video */
   if (capturer) capturer.capture(renderer.domElement);
@@ -822,37 +834,7 @@ function createRect({
   return plane;
 }
 
-let triangleData = canvasDrawTriangle();
-let rectGroup = new THREE.Group();
-const SIZE = 64;
-for (let i = 0; i < SIZE; i++) {
-  for (let j = 0; j < SIZE; j++) {
 
-    let color;
-    if (triangleData[((i * SIZE + j) * 4) + 3] > 150) {
-      color = i * 4 + (j * 4) * 256
-    } else {
-      color = 0;
-    }
-
-    if (color > 0) {
-      let rect = createRect({ color: color });
-      rect.position.set(j - SIZE * 0.5, i - SIZE * 0.5, -2);
-      rectGroup.add(rect);
-    }
-
-
-    // rect.material.opacity = 0.5;
-
-  }
-}
-
-gsap.fromTo(rectGroup.children.map(x => x.material),
-  { opacity: 0 },
-  { opacity: 1, duration: 1, delay: 2.0, stagger: 0.001 });
-
-rectGroup.scale.set(0.2, 0.2, 0.2);
-scene.add(rectGroup);
 
 
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
@@ -1100,3 +1082,82 @@ if (1) {
   // circle.scale.set(0.2, 0.2, 0.2);
   addPulseAnimation(circle);
 }
+
+function createRectangleStroke({
+  lineWidth = 0.1,
+} = {}) {
+  const mesh = createLine3D({
+    points: [
+      new THREE.Vector3(-0.5, -0.5, 0),
+      new THREE.Vector3(-0.5, 0.5, 0),
+      new THREE.Vector3(0.5, 0.5, 0),
+      new THREE.Vector3(0.5, -0.5, 0),
+      new THREE.Vector3(-0.5, -0.5, 0),
+    ],
+    lineWidth,
+    color: 0x00ff00,
+  });
+  return mesh;
+}
+
+function createGrid({
+  rows = 10,
+  cols = 10,
+  lineWidth = 0.1,
+} = {}) {
+  const group = new THREE.Group();
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      const mesh = createRectangleStroke({
+        lineWidth,
+      });
+      mesh.position.set(-0.5 * cols + j, -0.5 * rows + i, 0);
+      group.add(mesh);
+    }
+  }
+  return group;
+}
+
+if (1) {
+  const GRID_SIZE = 64;
+
+  let triangleData = canvasDrawTriangle();
+  let rectGroup = new THREE.Group();
+
+  for (let i = 0; i < GRID_SIZE; i++) {
+    for (let j = 0; j < GRID_SIZE; j++) {
+
+      let color;
+      if (triangleData[((i * GRID_SIZE + j) * 4) + 3] > 150) {
+        color = i * 4 + (j * 4) * 256
+      } else {
+        color = 0;
+      }
+
+      if (color > 0) {
+        let rect = createRect({ color: color });
+        rect.position.set(
+          j - GRID_SIZE * 0.5,
+          i - GRID_SIZE * 0.5,
+          0);
+        rectGroup.add(rect);
+      }
+    }
+  }
+
+  gsap.fromTo(rectGroup.children.map(x => x.material),
+    { opacity: 0 },
+    { opacity: 1, duration: 1, delay: 2.0, stagger: 0.001 });
+
+  rectGroup.scale.set(0.2, 0.2, 0.2);
+  scene.add(rectGroup);
+}
+
+
+let gridMesh = createGrid({
+  rows: 64,
+  cols: 64,
+});
+gridMesh.position.set(0, 0, 0.01);
+gridMesh.scale.set(0.2, 0.2, 0.2);
+scene.add(gridMesh);
