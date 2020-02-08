@@ -24,6 +24,7 @@ gsap.ticker.remove(gsap.updateRoot);
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
+const AA_METHOD = 'fxaa';
 
 let capturer = null;
 let renderer;
@@ -108,7 +109,14 @@ function resize(width, height) {
 }
 
 function setupScene(width, height) {
-  renderer = new THREE.WebGLRenderer();
+  let options = {
+    // antialias: true,
+  };
+  if (AA_METHOD == 'mxaa') {
+    options.antialias = true;
+  }
+
+  renderer = new THREE.WebGLRenderer(options);
   renderer.setSize(width, height);
   document.body.appendChild(renderer.domElement);
 
@@ -208,7 +216,13 @@ function setupScene(width, height) {
     // motionPass.renderToScreen = true;
   }
 
-  if (1) {
+
+  // if (1) { // Bloom pass
+  //   let bloomPass = new UnrealBloomPass(new THREE.Vector2(WIDTH, HEIGHT), 1.5, 0.4, 0.85);
+  //   composer.addPass(bloomPass);
+  // }
+
+  if (1) { // Water pass
     const waterPass = new WaterPass();
     waterPass.factor = 0.1;
     composer.addPass(waterPass);
@@ -226,25 +240,25 @@ function setupScene(width, height) {
     }, 1200);
   }
 
-  if (1) { // Bloom pass
-    let bloomPass = new UnrealBloomPass(new THREE.Vector2(WIDTH, HEIGHT), 1.5, 0.4, 0.85);
-    composer.addPass(bloomPass);
-  }
 
-  const AA_QUALITY = 1;
-  if (AA_QUALITY == 1) {
+  if (AA_METHOD == 'fxaa') {
     composer.addPass(createFxaaPass(renderer));
-  } else if (AA_QUALITY == 2) {
+  } else if (AA_METHOD == 'ssaa') {
     let ssaaRenderPass = new SSAARenderPass(scene, camera);
     ssaaRenderPass.unbiased = true;
     ssaaRenderPass.samples = 8;
     composer.addPass(ssaaRenderPass);
-  } else if (AA_QUALITY == 3) {
+  } else if (AA_METHOD == 'smaa') {
+    let pixelRatio = renderer.getPixelRatio();
+    let smaaPass = new SMAAPass(WIDTH * pixelRatio, HEIGHT * pixelRatio);
+    composer.addPass(smaaPass);
+  } else if (AA_METHOD == 'taa') {
     let taaRenderPass = new TAARenderPass(scene, camera);
     taaRenderPass.unbiased = false;
-    taaRenderPass.sampleLevel = 1;
+    taaRenderPass.sampleLevel = 4;
     composer.addPass(taaRenderPass);
   }
+
 }
 
 var start;
@@ -527,6 +541,7 @@ function createAnimatedLines() {
 }
 
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
+import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 
 function createFxaaPass(renderer) {
@@ -882,4 +897,206 @@ if (1) {
   triangleStroke.position.set(-6.4, -6.4, 0);
   triangleStroke.scale.set(0.2, 0.2, 0.2);
   scene.add(triangleStroke);
+  addWipeAnimation(triangleStroke, { distance: 5.0 });
+}
+
+function addWipeAnimation(object3d, {
+  direction3d = new THREE.Vector3(-1, 0, 0),
+  distance = 5.0,
+} = {}) {
+  let localPlane = new THREE.Plane(direction3d, 0);
+  object3d.material.clippingPlanes = [localPlane];
+  renderer.localClippingEnabled = true;
+
+
+
+  gsap.fromTo(localPlane,
+    { constant: -distance },
+    {
+      constant: distance,
+      delay: 1,
+      duration: 0.6,
+      ease: 'power3.out'
+    });
+
+  // object3d.material.clippingPlanes[0] = new THREE.Plane(new THREE.Vector3(-5, 0, 0), 0.8);
+}
+
+function createCircle2D() {
+  let geometry = new THREE.CircleGeometry(0.5, 32);
+
+  let material = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 1.0
+  });
+
+  let circle = new THREE.Mesh(geometry, material);
+  scene.add(circle);
+  return circle;
+}
+
+function createObject3D({
+  type = 'sphere'
+} = {}) {
+  let geometry;
+  geometry = new THREE.SphereGeometry(0.5, 32, 32);
+
+  let material = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 1.0
+  });
+
+  let mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+  return mesh;
+}
+
+function addPulseAnimation(object3d) {
+  let tl = gsap.timeline();
+  tl.fromTo(
+    object3d.material, 0.8,
+    { opacity: 0 },
+    {
+      opacity: 1,
+      yoyo: true,
+      repeat: 5,
+      // repeatDelay: 0.4,
+    },
+  );
+}
+
+
+
+//// GLOW MESH
+
+const dilateGeometry = function (geometry, length) {
+  // gather vertexNormals from geometry.faces
+  var vertexNormals = new Array(geometry.vertices.length);
+  geometry.faces.forEach(function (face) {
+    if (face instanceof THREE.Face4) {
+      vertexNormals[face.a] = face.vertexNormals[0];
+      vertexNormals[face.b] = face.vertexNormals[1];
+      vertexNormals[face.c] = face.vertexNormals[2];
+      vertexNormals[face.d] = face.vertexNormals[3];
+    } else if (face instanceof THREE.Face3) {
+      vertexNormals[face.a] = face.vertexNormals[0];
+      vertexNormals[face.b] = face.vertexNormals[1];
+      vertexNormals[face.c] = face.vertexNormals[2];
+    } else console.assert(false);
+  });
+  // modify the vertices according to vertextNormal
+  geometry.vertices.forEach(function (vertex, idx) {
+    var vertexNormal = vertexNormals[idx];
+    vertex.x += vertexNormal.x * length;
+    vertex.y += vertexNormal.y * length;
+    vertex.z += vertexNormal.z * length;
+  });
+};
+
+const createAtmosphereMaterial = function () {
+  var vertexShader = [
+    'varying vec3	vVertexWorldPosition;',
+    'varying vec3	vVertexNormal;',
+
+    'varying vec4	vFragColor;',
+
+    'void main(){',
+    '	vVertexNormal	= normalize(normalMatrix * normal);',
+
+    '	vVertexWorldPosition	= (modelMatrix * vec4(position, 1.0)).xyz;',
+
+    '	// set gl_Position',
+    '	gl_Position	= projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+    '}',
+
+  ].join('\n')
+  var fragmentShader = [
+    'uniform vec3	glowColor;',
+    'uniform float	coeficient;',
+    'uniform float	power;',
+
+    'varying vec3	vVertexNormal;',
+    'varying vec3	vVertexWorldPosition;',
+
+    'varying vec4	vFragColor;',
+
+    'void main(){',
+    '	vec3 worldCameraToVertex= vVertexWorldPosition - cameraPosition;',
+    '	vec3 viewCameraToVertex	= (viewMatrix * vec4(worldCameraToVertex, 0.0)).xyz;',
+    '	viewCameraToVertex	= normalize(viewCameraToVertex);',
+    '	float intensity		= pow(coeficient + dot(vVertexNormal, viewCameraToVertex), power);',
+    '	gl_FragColor		= vec4(glowColor, intensity);',
+    '}',
+  ].join('\n')
+
+  // create custom material from the shader code above
+  //   that is within specially labeled script tags
+  var material = new THREE.ShaderMaterial({
+    uniforms: {
+      coeficient: {
+        type: "f",
+        value: 1.0
+      },
+      power: {
+        type: "f",
+        value: 2
+      },
+      glowColor: {
+        type: "c",
+        value: new THREE.Color('pink')
+      },
+    },
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    //blending	: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false,
+  });
+  return material
+};
+
+const GeometricGlowMesh = function (mesh, {
+  color = 'cyan',
+} = {}) {
+  var object3d = new THREE.Object3D
+
+  var geometry = mesh.geometry.clone()
+  dilateGeometry(geometry, 0.01)
+  var material = createAtmosphereMaterial()
+  material.uniforms.glowColor.value = new THREE.Color(color)
+  material.uniforms.coeficient.value = 1.1
+  material.uniforms.power.value = 1.4
+  var insideMesh = new THREE.Mesh(geometry, material);
+  object3d.add(insideMesh);
+
+
+  var geometry = mesh.geometry.clone()
+  dilateGeometry(geometry, 0.2)
+  var material = createAtmosphereMaterial()
+  material.uniforms.glowColor.value = new THREE.Color(color)
+  material.uniforms.coeficient.value = 0.1
+  material.uniforms.power.value = 1.2
+  material.side = THREE.BackSide
+  var outsideMesh = new THREE.Mesh(geometry, material);
+  object3d.add(outsideMesh);
+
+  // expose a few variable
+  this.object3d = object3d
+  this.insideMesh = insideMesh
+  this.outsideMesh = outsideMesh
+};
+
+function addGlow(object3d) {
+  object3d.add((new GeometricGlowMesh(circle)).object3d);
+}
+
+///
+
+if (1) {
+  let circle = createObject3D();
+  circle.position.set(0, 0, 3);
+  // circle.scale.set(0.2, 0.2, 0.2);
+  addPulseAnimation(circle);
 }
