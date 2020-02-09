@@ -227,10 +227,10 @@ function setupScene(width, height) {
   }
 
 
-  // if (1) { // Bloom pass
-  //   let bloomPass = new UnrealBloomPass(new THREE.Vector2(WIDTH, HEIGHT), 1.5, 0.4, 0.85);
-  //   composer.addPass(bloomPass);
-  // }
+  if (0) { // Bloom pass
+    let bloomPass = new UnrealBloomPass(new THREE.Vector2(WIDTH, HEIGHT), 1.5, 0.4, 0.85);
+    composer.addPass(bloomPass);
+  }
 
   if (0) { // Water pass
     const waterPass = new WaterPass();
@@ -397,7 +397,11 @@ function generateRandomString(length) {
 }
 
 if (1) {
-  const textMesh = new TextMesh('编程三分钟', { color: pallete[1] });
+  const textMesh = new TextMesh({
+    text: '编程三分钟',
+    color: pallete[1],
+    font: 'zh',
+  });
 
   // setInterval(() => {
   //   textMesh.text = generateRandomString(10);
@@ -408,9 +412,9 @@ if (1) {
   scene.add(textMesh);
   addAnimation(textMesh);
 
-  const t2 = new TextMesh('{');
+  const t2 = new TextMesh({ text: '{' });
   t2.position.set(-5.5, 1, 1.01);
-  const t3 = new TextMesh('}');
+  const t3 = new TextMesh({ text: '}' });
   t3.position.set(-0.9, -0.5, 1.01);
   t2.scale.set(0.5, 0.5, 0.5);
   t3.scale.set(0.5, 0.5, 0.5);
@@ -874,7 +878,8 @@ function createLine3D({
 
   let material = new THREE.MeshBasicMaterial({
     color,
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    transparent: true,
   });
 
   let mesh = new THREE.Mesh(geometry, material);
@@ -893,16 +898,17 @@ function addWipeAnimation(object3d, {
 
 
 
-  gsap.fromTo(localPlane,
+  const tween = gsap.fromTo(
+    localPlane,
     { constant: -distance },
     {
       constant: distance,
-      delay: 1,
       duration: 0.6,
       ease: 'power3.out'
     });
 
   // object3d.material.clippingPlanes[0] = new THREE.Plane(new THREE.Vector3(-5, 0, 0), 0.8);
+  return tween;
 }
 
 function createCircle2D() {
@@ -919,11 +925,16 @@ function createCircle2D() {
   return circle;
 }
 
-function createObject3D({
-  type = 'sphere'
+function createObject({
+  type = 'sphere',
 } = {}) {
+  const SEGMENTS = 32;
   let geometry;
-  geometry = new THREE.SphereGeometry(0.5, 32, 32);
+  if (type == 'sphere') {
+    geometry = new THREE.SphereGeometry(0.5, SEGMENTS, SEGMENTS);
+  } else if (type == 'circle') {
+    geometry = new THREE.CircleGeometry(0.5, SEGMENTS);
+  }
 
   let material = new THREE.MeshBasicMaterial({
     color: 0xffffff,
@@ -940,11 +951,12 @@ function addPulseAnimation(object3d) {
   let tl = gsap.timeline();
   tl.fromTo(
     object3d.material, 0.8,
-    { opacity: 0 },
+    { opacity: 1 },
     {
-      opacity: 1,
+      opacity: 0.3,
       yoyo: true,
       repeat: 5,
+      ease: 'power2.in'
       // repeatDelay: 0.4,
     },
   );
@@ -1077,12 +1089,6 @@ function addGlow(object3d) {
 
 ///
 
-if (1) {
-  let circle = createObject3D();
-  circle.position.set(0, 0, 3);
-  // circle.scale.set(0.2, 0.2, 0.2);
-  addPulseAnimation(circle);
-}
 
 function createRectMeshLine({
   lineWidth = 0.1,
@@ -1151,13 +1157,127 @@ function createGrid({
   return group;
 }
 
+function addFadeIn(object3d) {
+  object3d.material.transparent = true;
+  gsap.fromTo(object3d.material,
+    {
+      opacity: 0,
+    },
+    {
+      opacity: 1,
+    });
+}
+
+///////////
+
+const INIT_POINTS = [
+  new THREE.Vector3(10, 15, 0),
+  new THREE.Vector3(54, 15, 0),
+  new THREE.Vector3(32, 50, 0),
+];
+
+const TRIANGLE_POINTS = [
+  new THREE.Vector3(10, 25, 0),
+  new THREE.Vector3(45, 5, 0),
+  new THREE.Vector3(50, 60, 0),
+];
+
+var globalTimeline = gsap.timeline()
+
+let T = new THREE.Matrix4().makeScale(0.2, 0.2, 0.2).multiply(
+  new THREE.Matrix4().makeTranslation(-32, -32, 0)
+);
+
+
+
+
+
+
+
+if (1) {
+  const tl = gsap.timeline();
+  globalTimeline.add(tl);
+  globalTimeline.addLabel('showVertices')
+
+  TRIANGLE_POINTS.forEach(function (p, i) {
+    let circle = createObject({ type: 'circle' });
+    circle.position.set((p.x - 32) * 0.2, (p.y - 32) * 0.2, 0.05);
+    circle.scale.set(0.6, 0.6, 0.6);
+    // circle.scale.set(0.2, 0.2, 0.2);
+    // addPulseAnimation(circle);
+
+
+    let textMesh = new TextMesh({
+      size: 0.5,
+    })
+    // textMesh.text = '123'
+    textMesh.position.z = 0.05
+    textMesh.position.y = 1
+    circle.add(textMesh)
+
+
+    const initPos = INIT_POINTS[i].applyMatrix4(T);
+    tl.from(circle.position, {
+      x: initPos.x,
+      y: initPos.y,
+      duration: 2,
+      onUpdate: () => {
+        textMesh.text = `${circle.position.x.toFixed(2)} ${circle.position.y.toFixed(2)}`
+      }
+    }, '<');
+  });
+}
+
+if (1) {
+  const triangleStroke = createLine3D({
+    points: TRIANGLE_POINTS.concat(TRIANGLE_POINTS[0]),
+    lineWidth: 1,
+    color: 0x00ff00,
+  });
+  triangleStroke.position.set(-6.4, -6.4, 0.02);
+  triangleStroke.scale.set(0.2, 0.2, 0.2);
+  scene.add(triangleStroke);
+
+  globalTimeline.addLabel('showTriangle')
+  globalTimeline.add(addWipeAnimation(triangleStroke, { distance: 5.0 }));
+
+  globalTimeline.to(triangleStroke.material,
+    { opacity: 0 })
+}
+
+
+if (0) {
+  let gridMesh = createGrid({
+    rows: 64,
+    cols: 64,
+    color: 0,
+  });
+  gridMesh.position.set(0, 0, 0.01);
+  gridMesh.scale.set(0.2, 0.2, 0.2);
+  scene.add(gridMesh);
+}
+
+if (1) {
+  let gridHelper = new THREE.GridHelper(64 * 0.2, 64, 0, 0);
+  gridHelper.rotation.x = Math.PI / 2;
+  gridHelper.position.z = 0.01;
+  scene.add(gridHelper);
+
+  globalTimeline.addLabel('showGrid')
+  globalTimeline.add(addWipeAnimation(gridHelper, {
+    distance: 10,
+  }))
+}
+
+
+
 if (1) {
   const GRID_SIZE = 64;
 
   let triangleData = canvasDrawTriangle();
   let rectGroup = new THREE.Group();
 
-  for (let i = 0; i < GRID_SIZE; i++) {
+  for (let i = GRID_SIZE - 1; i >= 0; i--) {
     for (let j = 0; j < GRID_SIZE; j++) {
 
       let color;
@@ -1170,46 +1290,54 @@ if (1) {
       if (color > 0) {
         let rect = createRect({ color: color });
         rect.position.set(
-          j - GRID_SIZE * 0.5,
-          i - GRID_SIZE * 0.5,
+          j - GRID_SIZE * 0.5 + 0.5,
+          i - GRID_SIZE * 0.5 + 0.5,
           0);
         rectGroup.add(rect);
       }
     }
   }
 
-  gsap.fromTo(rectGroup.children.map(x => x.material),
+  globalTimeline.addLabel('drawPixels')
+  globalTimeline.fromTo(rectGroup.children.map(x => x.material),
     { opacity: 0 },
-    { opacity: 1, duration: 1, delay: 2.0, stagger: 0.001 });
+    {
+      opacity: 1,
+      duration: 0.1,
+      stagger: 0.01,
+      ease: 'linear'
+    });
 
   rectGroup.scale.set(0.2, 0.2, 0.2);
   scene.add(rectGroup);
 }
 
-if (1) {
-  let gridMesh = createGrid({
-    rows: 64,
-    cols: 64,
-    color: 0,
-  });
-  gridMesh.position.set(0, 0, 0.01);
-  gridMesh.scale.set(0.2, 0.2, 0.2);
-  scene.add(gridMesh);
+
+options.timeline = 0;
+gui.add(options, 'timeline', 0, globalTimeline.totalDuration()).onChange((val) => {
+  globalTimeline.seek(val);
+})
+
+Object.keys(globalTimeline.labels).forEach(key => {
+  console.log(`${key} ${globalTimeline.labels[key]}`)
+})
+
+{
+  const folder = gui.addFolder('Timeline Labels')
+  var labels = new Object();
+  Object.keys(globalTimeline.labels).forEach(key => {
+
+    const label = key;
+    const time = globalTimeline.labels[key];
+
+    console.log(this);
+    labels[label] = () => {
+      globalTimeline.seek(time);
+    };
+    folder.add(labels, label);
+  })
 }
 
-if (1) {
-  const triangleStroke = createLine3D({
-    points: [
-      new THREE.Vector3(10, 25, 0),
-      new THREE.Vector3(50, 60, 0),
-      new THREE.Vector3(45, 5, 0),
-      new THREE.Vector3(10, 25, 0),
-    ],
-    lineWidth: 1,
-    color: 0x00ff00,
-  });
-  triangleStroke.position.set(-6.4, -6.4, 0.02);
-  triangleStroke.scale.set(0.2, 0.2, 0.2);
-  scene.add(triangleStroke);
-  addWipeAnimation(triangleStroke, { distance: 5.0 });
-}
+
+// let f1= gui.addFolder('Timeline')
+// f1.add()

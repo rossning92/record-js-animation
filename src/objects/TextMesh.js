@@ -9,24 +9,29 @@ import { MeshLine, MeshLineMaterial } from 'three.meshline';
 // import font2 from '../utils/cn.json'
 
 const fontLoader = new FontLoader();
-const font = fontLoader.parse(fontFile);
 // const font = fontLoader.load('fonts/cn.json');
 
 export default class TextMesh extends Object3D {
-  constructor(text, {
+  constructor({
+    text = '',
     size = 1.5,
     letterSpacing = 0.03,
     color = '#ffffff',
     duration = 0.5,
     opacity = 1,
-    wireframe = false
+    wireframe = false,
+    font = 'en',
   } = {}) {
     super();
 
     this.basePosition = 0;
     this.size = size;
 
-
+    if (font == 'zh') {
+      this.font = fontLoader.parse(require('../fonts/sourceHanBold3000'))
+    }  else {
+      this.font = fontLoader.parse(require('../fonts/muliBold').default);
+    }
 
     this.material = new MeshBasicMaterial({
       color,
@@ -165,7 +170,7 @@ export default class TextMesh extends Object3D {
     this.children.length = 0;
 
     // Generate text shapes
-    const shapes = font.generateShapes(text, this.size);
+    const shapes = this.font.generateShapes(text, this.size);
 
     // Compute xMid
     const geometry = new ShapeBufferGeometry(shapes);
