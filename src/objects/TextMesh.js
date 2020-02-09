@@ -12,7 +12,7 @@ const fontLoader = new FontLoader();
 const font = fontLoader.parse(fontFile);
 // const font = fontLoader.load('fonts/cn.json');
 
-export default class AnimatedText3D extends Object3D {
+export default class TextMesh extends Object3D {
   constructor(text, {
     size = 1.5,
     letterSpacing = 0.03,
@@ -26,40 +26,16 @@ export default class AnimatedText3D extends Object3D {
     this.basePosition = 0;
     this.size = size;
 
-    var shapes = font.generateShapes(text, size);
-
-    // Compute xMid
-    let geometry = new ShapeBufferGeometry(shapes);
-    geometry.computeBoundingBox();
-    let xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
-
-    if (1) {
-      // Text shapes
-      // const letters = [...text];
-      shapes.forEach((shape) => {
-
-        const geometry = new ShapeBufferGeometry(shape);
-
-        // Shift letter to position whole text into center
-        geometry.translate(xMid, 0, 0);
 
 
-        // mesh
-        const mat = new MeshBasicMaterial({
-          color,
-          // opacity: 0,
-          transparent: true,
-          wireframe,
-        });
-        const mesh = new Mesh(geometry, mat);
+    this.material = new MeshBasicMaterial({
+      color,
+      transparent: true,
+      wireframe,
+    });
 
-        // mesh.position.x = this.basePosition;
-        // this.basePosition += geometry.boundingBox.max.x + letterSpacing;
-        this.add(mesh);
 
-      });
-    }
-
+    this.text = text;
 
     // Text outlines
     // make line shape ( N.B. edge view remains visible )
@@ -125,14 +101,13 @@ export default class AnimatedText3D extends Object3D {
           });
 
 
-            // new BufferGeometry().fromGeometry(line.geometry);
+          // new BufferGeometry().fromGeometry(line.geometry);
           let mesh = new Mesh(line.geometry, material); // this syntax could definitely be improved!
           this.add(mesh);
 
 
           // Text outline animation
-          if (1)
-          {
+          if (1) {
             const vals = { svg: 0 };
             gsap.to(vals, 5, {
               svg: 1,
@@ -141,7 +116,7 @@ export default class AnimatedText3D extends Object3D {
               },
             });
           }
-          
+
           continue;
         }
 
@@ -154,8 +129,6 @@ export default class AnimatedText3D extends Object3D {
       }
       this.add(strokeText);
     }
-
-
 
     if (0) {
       // Animation
@@ -186,5 +159,32 @@ export default class AnimatedText3D extends Object3D {
       });
     }
 
+  }
+
+  set text(text) {
+    this.children.length = 0;
+
+    // Generate text shapes
+    const shapes = font.generateShapes(text, this.size);
+
+    // Compute xMid
+    const geometry = new ShapeBufferGeometry(shapes);
+    geometry.computeBoundingBox();
+    const xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
+
+    // Text shapes
+    shapes.forEach((shape) => {
+      const geometry = new ShapeBufferGeometry(shape);
+
+      // Shift letter to position whole text into center
+      geometry.translate(xMid, 0, 0);
+
+      // mesh
+      const mesh = new Mesh(geometry, this.material);
+
+      // mesh.position.x = this.basePosition;
+      // this.basePosition += geometry.boundingBox.max.x + letterSpacing;
+      this.add(mesh);
+    });
   }
 }

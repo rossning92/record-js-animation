@@ -5,7 +5,7 @@ import * as dat from 'dat.gui';
 import TWEEN from '@tweenjs/tween.js';
 import * as THREE from 'three';
 import { MeshLine, MeshLineMaterial } from 'three.meshline'
-import AnimatedText3D from './objects/AnimatedText3D';
+import TextMesh from './objects/TextMesh';
 import Stars from './objects/Stars';
 import gsap, { TimelineLite } from 'gsap';
 
@@ -26,7 +26,7 @@ gsap.ticker.remove(gsap.updateRoot);
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
-const AA_METHOD = 'fxaa';
+const AA_METHOD = 'msaa';
 
 let stats;
 let capturer = null;
@@ -386,16 +386,32 @@ setupScene(WIDTH, HEIGHT);
 // createLine();
 // createAnimatedLines();
 
-{
-  const text = new AnimatedText3D('编程三分钟', { color: pallete[1] });
-  // text.position.x -= text.basePosition * 0.5;
-  scene.add(text);
-  addAnimation(text);
+function generateRandomString(length) {
+  var result = '';
+  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+}
 
-  const t2 = new AnimatedText3D('{');
-  t2.position.set(-5.5, 1, 0);
-  const t3 = new AnimatedText3D('}');
-  t3.position.set(-0.9, -0.5, 0);
+if (1) {
+  const textMesh = new TextMesh('编程三分钟', { color: pallete[1] });
+
+  // setInterval(() => {
+  //   textMesh.text = generateRandomString(10);
+  // }, 10);
+
+  textMesh.position.set(0, 0, 1);
+  // text.position.x -= text.basePosition * 0.5;
+  scene.add(textMesh);
+  addAnimation(textMesh);
+
+  const t2 = new TextMesh('{');
+  t2.position.set(-5.5, 1, 1.01);
+  const t3 = new TextMesh('}');
+  t3.position.set(-0.9, -0.5, 1.01);
   t2.scale.set(0.5, 0.5, 0.5);
   t3.scale.set(0.5, 0.5, 0.5);
 
@@ -865,22 +881,7 @@ function createLine3D({
   return mesh;
 }
 
-if (1) {
-  const triangleStroke = createLine3D({
-    points: [
-      new THREE.Vector3(10, 25, 0),
-      new THREE.Vector3(50, 60, 0),
-      new THREE.Vector3(45, 5, 0),
-      new THREE.Vector3(10, 25, 0),
-    ],
-    lineWidth: 1,
-    color: 0x00ff00,
-  });
-  triangleStroke.position.set(-6.4, -6.4, 0);
-  triangleStroke.scale.set(0.2, 0.2, 0.2);
-  scene.add(triangleStroke);
-  addWipeAnimation(triangleStroke, { distance: 5.0 });
-}
+
 
 function addWipeAnimation(object3d, {
   direction3d = new THREE.Vector3(-1, 0, 0),
@@ -1083,8 +1084,9 @@ if (1) {
   addPulseAnimation(circle);
 }
 
-function createRectangleStroke({
+function createRectMeshLine({
   lineWidth = 0.1,
+  color = 0x00ff00,
 } = {}) {
   const mesh = createLine3D({
     points: [
@@ -1095,24 +1097,55 @@ function createRectangleStroke({
       new THREE.Vector3(-0.5, -0.5, 0),
     ],
     lineWidth,
-    color: 0x00ff00,
+    color,
   });
   return mesh;
+}
+
+function createRectLine({
+  color = 0x00ff00,
+} = {}) {
+  var material = new THREE.LineBasicMaterial({
+    color
+  });
+
+  var geometry = new THREE.Geometry();
+  geometry.vertices.push(
+    new THREE.Vector3(-0.5, -0.5, 0),
+    new THREE.Vector3(-0.5, 0.5, 0),
+    new THREE.Vector3(0.5, 0.5, 0),
+    new THREE.Vector3(0.5, -0.5, 0),
+    new THREE.Vector3(-0.5, -0.5, 0),
+  );
+
+  var line = new THREE.Line(geometry, material);
+  return line;
 }
 
 function createGrid({
   rows = 10,
   cols = 10,
-  lineWidth = 0.1,
+  lineWidth = 0.05,
+  useMeshLine = false,
+  color = 0x00ff00,
 } = {}) {
   const group = new THREE.Group();
   for (let i = 0; i < rows; i++) {
     for (let j = 0; j < cols; j++) {
-      const mesh = createRectangleStroke({
-        lineWidth,
-      });
-      mesh.position.set(-0.5 * cols + j, -0.5 * rows + i, 0);
-      group.add(mesh);
+      let cellObject;
+      if (useMeshLine) {
+        cellObject = createRectMeshLine({
+          lineWidth,
+          color,
+        });
+      } else {
+        cellObject = createRectLine({
+          color,
+        });
+      }
+
+      cellObject.position.set(-0.5 * cols + j, -0.5 * rows + i, 0);
+      group.add(cellObject);
     }
   }
   return group;
@@ -1153,11 +1186,30 @@ if (1) {
   scene.add(rectGroup);
 }
 
+if (1) {
+  let gridMesh = createGrid({
+    rows: 64,
+    cols: 64,
+    color: 0,
+  });
+  gridMesh.position.set(0, 0, 0.01);
+  gridMesh.scale.set(0.2, 0.2, 0.2);
+  scene.add(gridMesh);
+}
 
-let gridMesh = createGrid({
-  rows: 64,
-  cols: 64,
-});
-gridMesh.position.set(0, 0, 0.01);
-gridMesh.scale.set(0.2, 0.2, 0.2);
-scene.add(gridMesh);
+if (1) {
+  const triangleStroke = createLine3D({
+    points: [
+      new THREE.Vector3(10, 25, 0),
+      new THREE.Vector3(50, 60, 0),
+      new THREE.Vector3(45, 5, 0),
+      new THREE.Vector3(10, 25, 0),
+    ],
+    lineWidth: 1,
+    color: 0x00ff00,
+  });
+  triangleStroke.position.set(-6.4, -6.4, 0.02);
+  triangleStroke.scale.set(0.2, 0.2, 0.2);
+  scene.add(triangleStroke);
+  addWipeAnimation(triangleStroke, { distance: 5.0 });
+}
