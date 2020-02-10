@@ -28,6 +28,7 @@ const WIDTH = 1920;
 const HEIGHT = 1080;
 const AA_METHOD = 'msaa';
 
+var globalTimeline = gsap.timeline()
 let stats;
 let capturer = null;
 let renderer;
@@ -171,17 +172,7 @@ function setupScene(width, height) {
 
 
 
-  // const light0 = new THREE.PointLight(0xffffff, 1, 0);
-  // light0.position.set(0, 200, 0);
-  // scene.add(light0);
 
-  // const light1 = new THREE.PointLight(0xffffff, 1, 0);
-  // light1.position.set(100, 200, 100);
-  // scene.add(light1);
-
-  // const light2 = new THREE.PointLight(0xffffff, 1, 0);
-  // light2.position.set(-100, -200, -100);
-  // scene.add(light2);
 
 
 
@@ -396,7 +387,7 @@ function generateRandomString(length) {
   return result;
 }
 
-if (1) {
+if (0) {
   const textMesh = new TextMesh({
     text: '编程三分钟',
     color: pallete[1],
@@ -927,20 +918,40 @@ function createCircle2D() {
 
 function createObject({
   type = 'sphere',
+  materialType = 'basic',
+  segments = 32,
+  color = 0xffffff,
 } = {}) {
-  const SEGMENTS = 32;
   let geometry;
   if (type == 'sphere') {
-    geometry = new THREE.SphereGeometry(0.5, SEGMENTS, SEGMENTS);
+    geometry = new THREE.SphereGeometry(0.5, segments, segments);
   } else if (type == 'circle') {
-    geometry = new THREE.CircleGeometry(0.5, SEGMENTS);
+    geometry = new THREE.CircleGeometry(0.5, segments);
+  } else if (type == 'cone') {
+    geometry = new THREE.ConeGeometry(0.5, 1.0, segments, segments);
   }
 
-  let material = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    transparent: true,
-    opacity: 1.0
-  });
+  let material;
+  if (materialType == 'phong') {
+    material = new THREE.MeshPhongMaterial({
+      color
+    });
+  } else if (materialType == 'physical') {
+    material = new THREE.MeshPhysicalMaterial({
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.1,
+      metalness: 0.9,
+      roughness: 0.5,
+      color,
+      normalScale: new THREE.Vector2(0.15, 0.15),
+    });
+  } else {
+    material = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 1.0
+    });
+  }
 
   let mesh = new THREE.Mesh(geometry, material);
   scene.add(mesh);
@@ -1159,16 +1170,124 @@ function createGrid({
 
 function addFadeIn(object3d) {
   object3d.material.transparent = true;
-  gsap.fromTo(object3d.material,
-    {
-      opacity: 0,
+  const tween = gsap.from(object3d.material, {
+    opacity: 0,
+    onStart: () => {
+      object3d.visible = true
     },
-    {
-      opacity: 1,
-    });
+  });
+  return tween;
 }
 
-///////////
+function addFadeOut(object3d) {
+  object3d.material.transparent = true;
+  const tween = gsap.to(object3d.material, {
+    opacity: 0,
+    onComplete: () => {
+      object3d.visible = false
+    },
+  });
+  return tween;
+}
+
+function addLights() {
+  const light0 = new THREE.PointLight(0xffffff, 1, 0);
+  light0.position.set(0, 200, 0);
+  scene.add(light0);
+
+  const light1 = new THREE.PointLight(0xffffff, 1, 0);
+  light1.position.set(100, 200, 100);
+  scene.add(light1);
+
+  const light2 = new THREE.PointLight(0xffffff, 1, 0);
+  light2.position.set(-100, -200, -100);
+  scene.add(light2);
+}
+
+function createTriangle({
+  vertices,
+  color = 0xffffff,
+  opacity = 1.0,
+} = {}) {
+  let geometry = new THREE.Geometry();
+
+  geometry.vertices.push(vertices[0], vertices[1], vertices[2]);
+
+  geometry.faces.push(new THREE.Face3(0, 1, 2));
+
+  let material = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity
+  });
+
+  let mesh = new THREE.Mesh(geometry, material);
+  return mesh;
+}
+
+///////////////////////////////////////////////////////////
+
+{
+  globalTimeline.addLabel('showCone')
+
+  addLights();
+
+  const group = new THREE.Mesh();
+
+  const geometry = new THREE.ConeGeometry(
+    0.5, // radius
+    1.0, // height
+    5,  // radius segments
+    1); // height segments
+
+  let coneMesh;
+  if (1) { // Cone mesh
+    const material = new THREE.MeshPhongMaterial({
+      color: 0x156289,
+      // emissive: 0x072534,
+      // side: THREE.DoubleSide,
+      flatShading: true,
+      // transparent:
+    });
+    coneMesh = new THREE.Mesh(geometry, material);
+    group.add(coneMesh);
+
+    globalTimeline.add(addFadeIn(coneMesh))
+  }
+
+  globalTimeline.set({}, {}, "+=2");
+
+  let coneWireframe;
+  if (1) { // Wireframe
+    const wireframeGeometry = new THREE.WireframeGeometry(geometry);
+    const material = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.1,
+      // side: THREE.DoubleSide,
+    });
+    coneWireframe = new THREE.LineSegments(wireframeGeometry, material);
+    group.add(coneWireframe);
+
+    globalTimeline.add(addFadeIn(coneWireframe));
+  }
+
+  globalTimeline.add(addFadeOut(coneMesh), '+=2')
+  globalTimeline.add(addFadeOut(coneWireframe), '<')
+
+  // Spinning
+  const clock = new THREE.Clock();
+  group.onBeforeRender = () => {
+    const delta = clock.getDelta();
+    // group.rotation.x += delta;
+    group.rotation.y += delta;
+    group.rotation.x = Math.sin(clock.getElapsedTime()) * 0.5;
+  }
+
+  group.position.set(0, 0, 1);
+  group.scale.set(4, 4, 4);
+  scene.add(group);
+}
 
 const INIT_POINTS = [
   new THREE.Vector3(10, 15, 0),
@@ -1182,7 +1301,7 @@ const TRIANGLE_POINTS = [
   new THREE.Vector3(50, 60, 0),
 ];
 
-var globalTimeline = gsap.timeline()
+
 
 let T = new THREE.Matrix4().makeScale(0.2, 0.2, 0.2).multiply(
   new THREE.Matrix4().makeTranslation(-32, -32, 0)
@@ -1194,41 +1313,64 @@ let T = new THREE.Matrix4().makeScale(0.2, 0.2, 0.2).multiply(
 
 
 
-if (1) {
-  const tl = gsap.timeline();
-  globalTimeline.add(tl);
+if (1) { // triangle
   globalTimeline.addLabel('showVertices')
+
+  const triangleMesh = createTriangle({
+    vertices: INIT_POINTS,
+    color: 0x7f7f7f,
+    opacity: 0.5,
+  })
+  scene.add(triangleMesh)
+
+  globalTimeline.from(triangleMesh.scale,
+    {
+      x: 0.3,
+      y: 0.3,
+      ease: 'back.inOut(1.7)',
+      duration: 1,
+    }, '<')
+  globalTimeline.add(addFadeIn(triangleMesh), '<')
+  globalTimeline.set({}, {})
 
   TRIANGLE_POINTS.forEach(function (p, i) {
     let circle = createObject({ type: 'circle' });
     circle.position.set((p.x - 32) * 0.2, (p.y - 32) * 0.2, 0.05);
-    circle.scale.set(0.6, 0.6, 0.6);
-    // circle.scale.set(0.2, 0.2, 0.2);
-    // addPulseAnimation(circle);
+    circle.scale.set(0.4, 0.4, 0.4);
 
 
     let textMesh = new TextMesh({
-      size: 0.5,
+      size: 0.7,
     })
-    // textMesh.text = '123'
     textMesh.position.z = 0.05
-    textMesh.position.y = 1
+    textMesh.position.y = 0.8
     circle.add(textMesh)
 
 
     const initPos = INIT_POINTS[i].applyMatrix4(T);
+
+    const tl = gsap.timeline();
+
+    tl.add(addFadeIn(circle));
+    tl.add(addFadeIn(textMesh), '<');
     tl.from(circle.position, {
       x: initPos.x,
       y: initPos.y,
       duration: 2,
       onUpdate: () => {
         textMesh.text = `${circle.position.x.toFixed(2)} ${circle.position.y.toFixed(2)}`
+        triangleMesh.geometry.vertices[i].set(circle.position.x, circle.position.y, 0)
+        triangleMesh.geometry.verticesNeedUpdate = true
       }
-    }, '<');
+    });
+
+    globalTimeline.add(tl, '<');
   });
+
+  globalTimeline.add(addFadeOut(triangleMesh))
 }
 
-if (1) {
+if (0) {
   const triangleStroke = createLine3D({
     points: TRIANGLE_POINTS.concat(TRIANGLE_POINTS[0]),
     lineWidth: 1,
@@ -1246,17 +1388,6 @@ if (1) {
 }
 
 
-if (0) {
-  let gridMesh = createGrid({
-    rows: 64,
-    cols: 64,
-    color: 0,
-  });
-  gridMesh.position.set(0, 0, 0.01);
-  gridMesh.scale.set(0.2, 0.2, 0.2);
-  scene.add(gridMesh);
-}
-
 if (1) {
   let gridHelper = new THREE.GridHelper(64 * 0.2, 64, 0, 0);
   gridHelper.rotation.x = Math.PI / 2;
@@ -1268,8 +1399,6 @@ if (1) {
     distance: 10,
   }))
 }
-
-
 
 if (1) {
   const GRID_SIZE = 64;
@@ -1337,7 +1466,3 @@ Object.keys(globalTimeline.labels).forEach(key => {
     folder.add(labels, label);
   })
 }
-
-
-// let f1= gui.addFolder('Timeline')
-// f1.add()
