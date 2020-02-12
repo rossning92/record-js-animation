@@ -7,7 +7,11 @@ import * as THREE from 'three';
 import { MeshLine, MeshLineMaterial } from 'three.meshline'
 import TextMesh from './objects/TextMesh';
 import Stars from './objects/Stars';
+
 import gsap, { TimelineLite } from 'gsap';
+import { RoughEase } from "gsap/EasePack";
+
+gsap.registerPlugin(RoughEase);
 
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -37,22 +41,28 @@ let scene;
 let camera;
 let cameraControls;
 let pallete = [
-  '#1abc9c',
-  '#2ecc71',
-  '#3498db',
-  '#9b59b6',
-  '#34495e',
-  '#16a085',
-  '#27ae60',
-  '#2980b9',
-  '#8e44ad',
-  '#2c3e50',
-  '#f1c40f',
-  '#e67e22',
-  '#e74c3c',
-  '#f39c12',
-  '#d35400',
-  '#c0392b'
+  // '#1abc9c',
+  // '#2ecc71',
+  // '#3498db',
+  // '#9b59b6',
+  // '#34495e',
+  // '#16a085',
+  // '#27ae60',
+  // '#2980b9',
+  // '#8e44ad',
+  // '#2c3e50',
+  // '#f1c40f',
+  // '#e67e22',
+  // '#e74c3c',
+  // '#f39c12',
+  // '#d35400',
+  // '#c0392b'
+
+  '#1a535c',
+  '#4ecdc4',
+  '#ff6b6b',
+  '#ffe66d',
+  '#f7fff7',
 ];
 
 
@@ -132,7 +142,7 @@ function setupScene(width, height) {
   }
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(pallete[4]);
+  scene.background = new THREE.Color(pallete[0]);
 
   if (1) {
     camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 5000);
@@ -212,8 +222,9 @@ function setupScene(width, height) {
       renderCameraBlur: true
     };
     let motionPass = new MotionBlurPass(scene, camera, options);
+    composer.addPass(motionPass);
+
     // motionPass.debug.display = 2;
-    // composer.addPass(motionPass);
     // motionPass.renderToScreen = true;
   }
 
@@ -387,45 +398,7 @@ function generateRandomString(length) {
   return result;
 }
 
-if (0) {
-  const textMesh = new TextMesh({
-    text: '编程三分钟',
-    color: pallete[1],
-    font: 'zh',
-  });
 
-  // setInterval(() => {
-  //   textMesh.text = generateRandomString(10);
-  // }, 10);
-
-  textMesh.position.set(0, 0, 1);
-  // text.position.x -= text.basePosition * 0.5;
-  scene.add(textMesh);
-  addAnimation(textMesh);
-
-  const t2 = new TextMesh({ text: '{' });
-  t2.position.set(-5.5, 1, 1.01);
-  const t3 = new TextMesh({ text: '}' });
-  t3.position.set(-0.9, -0.5, 1.01);
-  t2.scale.set(0.5, 0.5, 0.5);
-  t3.scale.set(0.5, 0.5, 0.5);
-
-  // t3.rotation.z = Math.PI / 2;
-  // t2.rotation.z = Math.PI / 2;
-
-  scene.add(t2);
-  scene.add(t3);
-
-
-  addAnimation(t2);
-  addAnimation(t3);
-}
-
-if (0) {
-  const stars = new Stars()
-  stars.position.z = -100;
-  scene.add(stars);
-}
 
 
 
@@ -576,7 +549,6 @@ function createFxaaPass(renderer) {
 
   return fxaaPass;
 }
-
 
 function createTextParticles(text = "Hello Codepen ♥") {
   // Inspared by https://codepen.io/rachsmith/pen/LpZbmZ
@@ -1190,6 +1162,24 @@ function addFadeOut(object3d) {
   return tween;
 }
 
+function addJumpIn(object3d) {
+  object3d.material.transparent = true;
+
+  let tl = gsap.timeline();
+  tl.from(object3d.position, {
+    y: 2,
+    ease: 'elastic.out(1, 0.3)',
+    duration: 0.5,
+  });
+
+  tl.from(object3d.material, {
+    opacity: 0,
+    duration: 0.5,
+  }, '<');
+
+  return tl;
+}
+
 function addLights() {
   const light0 = new THREE.PointLight(0xffffff, 1, 0);
   light0.position.set(0, 200, 0);
@@ -1202,10 +1192,22 @@ function addLights() {
   const light2 = new THREE.PointLight(0xffffff, 1, 0);
   light2.position.set(-100, -200, -100);
   scene.add(light2);
+
+  // const light0 = new THREE.DirectionalLight( 0xffffff, 1.0 );
+  // light0.position.set(-1,1,1);
+  // scene.add( light0 );
+
+  // const light1 = new THREE.DirectionalLight( 0xffffff, 1.0 );
+  // light1.position.set(1,1,1);
+  // scene.add( light1 );
 }
 
 function createTriangle({
-  vertices,
+  vertices = [
+    new THREE.Vector3(-1.732, -1, 0),
+    new THREE.Vector3(1.732, -1, 0),
+    new THREE.Vector3(0, 2, 0),
+  ],
   color = 0xffffff,
   opacity = 1.0,
 } = {}) {
@@ -1226,232 +1228,413 @@ function createTriangle({
 }
 
 ///////////////////////////////////////////////////////////
+// Main animation
 
-{
-  globalTimeline.addLabel('showCone')
+if (1) {
+  // addLights();
 
-  addLights();
+  // const light0 = new THREE.PointLight(0xffffff, 1, 1.5);
+  // light0.position.set(0, 0, 1);
+  // scene.add(light0);
 
-  const group = new THREE.Mesh();
+  let root = new THREE.Group()
+  scene.add(root)
 
-  const geometry = new THREE.ConeGeometry(
-    0.5, // radius
-    1.0, // height
-    5,  // radius segments
-    1); // height segments
+  const tri_x = -3
+  const tri_y = 1
 
-  let coneMesh;
-  if (1) { // Cone mesh
-    const material = new THREE.MeshPhongMaterial({
-      color: 0x156289,
-      // emissive: 0x072534,
-      // side: THREE.DoubleSide,
-      flatShading: true,
-      // transparent:
-    });
-    coneMesh = new THREE.Mesh(geometry, material);
-    group.add(coneMesh);
+  let triangles = new THREE.Group()
+  triangles.position.set(tri_x, tri_y, -0.1)
+  root.add(triangles)
 
-    globalTimeline.add(addFadeIn(coneMesh))
-  }
-
-  globalTimeline.set({}, {}, "+=2");
-
-  let coneWireframe;
-  if (1) { // Wireframe
-    const wireframeGeometry = new THREE.WireframeGeometry(geometry);
-    const material = new THREE.LineBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.1,
-      // side: THREE.DoubleSide,
-    });
-    coneWireframe = new THREE.LineSegments(wireframeGeometry, material);
-    group.add(coneWireframe);
-
-    globalTimeline.add(addFadeIn(coneWireframe));
-  }
-
-  globalTimeline.add(addFadeOut(coneMesh), '+=2')
-  globalTimeline.add(addFadeOut(coneWireframe), '<')
-
-  // Spinning
-  const clock = new THREE.Clock();
-  group.onBeforeRender = () => {
-    const delta = clock.getDelta();
-    // group.rotation.x += delta;
-    group.rotation.y += delta;
-    group.rotation.x = Math.sin(clock.getElapsedTime()) * 0.5;
-  }
-
-  group.position.set(0, 0, 1);
-  group.scale.set(4, 4, 4);
-  scene.add(group);
-}
-
-const INIT_POINTS = [
-  new THREE.Vector3(10, 15, 0),
-  new THREE.Vector3(54, 15, 0),
-  new THREE.Vector3(32, 50, 0),
-];
-
-const TRIANGLE_POINTS = [
-  new THREE.Vector3(10, 25, 0),
-  new THREE.Vector3(45, 5, 0),
-  new THREE.Vector3(50, 60, 0),
-];
-
-
-
-let T = new THREE.Matrix4().makeScale(0.2, 0.2, 0.2).multiply(
-  new THREE.Matrix4().makeTranslation(-32, -32, 0)
-);
-
-
-
-
-
-
-
-if (1) { // triangle
-  globalTimeline.addLabel('showVertices')
-
-  const triangleMesh = createTriangle({
-    vertices: INIT_POINTS,
-    color: 0x7f7f7f,
-    opacity: 0.5,
-  })
-  scene.add(triangleMesh)
-
-  globalTimeline.from(triangleMesh.scale,
-    {
-      x: 0.3,
-      y: 0.3,
-      ease: 'back.inOut(1.7)',
-      duration: 1,
-    }, '<')
-  globalTimeline.add(addFadeIn(triangleMesh), '<')
-  globalTimeline.set({}, {})
-
-  TRIANGLE_POINTS.forEach(function (p, i) {
-    let circle = createObject({ type: 'circle' });
-    circle.position.set((p.x - 32) * 0.2, (p.y - 32) * 0.2, 0.05);
-    circle.scale.set(0.4, 0.4, 0.4);
-
-
-    let textMesh = new TextMesh({
-      size: 0.7,
+  for (let i = 0; i < 4; i++) {
+    const tri = createTriangle({
+      opacity: 0.3,
+      color: pallete[1],
     })
-    textMesh.position.z = 0.05
-    textMesh.position.y = 0.8
-    circle.add(textMesh)
+    tri.position.x += (Math.random() - 0.5) * 0.5
+    tri.position.y += (Math.random() - 0.5) * 0.5
+    tri.position.z = 0.01 * i
+
+    tri.scale.y = -1
+    tri.scale.x *= 2
+    tri.scale.y *= 2
+
+    triangles.add(tri)
+  }
+
+  let bigTriangles = new THREE.Group()
+  bigTriangles.position.set(tri_x, tri_y, -0.1)
+  root.add(bigTriangles)
+  for (let i = 0; i < 4; i++) {
+    const tri = createTriangle({
+      opacity: 0.3,
+      color: pallete[1],
+    })
+    tri.position.z = 0.01 * i + 0.5
+
+    tri.scale.x = i * 4 + 7
+    tri.scale.y = i * 4 + 7
+    tri.scale.y *= -1
+
+    bigTriangles.add(tri)
+  }
+
+  const textMesh = new TextMesh({
+    text: '编程',
+    color: pallete[4],
+    font: 'zh',
+    // material,
+  });
+  textMesh.position.z += 0.1
+  textMesh.position.y -= 0.7
+  triangles.add(textMesh)
+  // scene.add(textMesh);
+
+  globalTimeline.set({}, {}, '+=1')
+
+  globalTimeline.add(gsap.from(triangles.scale, {
+    x: 0.01,
+    y: 0.01,
+    z: 0.01,
+    duration: 0.8,
+    ease: 'elastic.out(1, 0.2)',
+  }), '<')
+
+  globalTimeline.add(gsap.from(bigTriangles.scale, {
+    x: 0.01,
+    y: 0.01,
+    z: 0.01,
+    duration: 0.8,
+  }), '<')
+
+  globalTimeline.to(bigTriangles.children.map(x => x.material), {
+    opacity: 0,
+    duration: 0.8,
+  }, '<')
+
+  // globalTimeline.from(root.position,
+  //   {
+  //     x: 1,
+  //     y: -1,
+  //     ease: 'rough({ strength: 10, points: 50 })',
+  //     duration: 0.2
+  //   }, '-=0.7')
 
 
-    const initPos = INIT_POINTS[i].applyMatrix4(T);
 
-    const tl = gsap.timeline();
+  {
+    const mesh = new TextMesh({
+      text: 'CODING IN 3 MINUTES',
+      color: pallete[4],
+      font: 'en',
+      size: 0.5,
+      // material,
+    });
+    mesh.position.set(0, -1, 0)
+    scene.add(mesh);
+  }
 
-    tl.add(addFadeIn(circle));
-    tl.add(addFadeIn(textMesh), '<');
-    tl.from(circle.position, {
-      x: initPos.x,
-      y: initPos.y,
-      duration: 2,
-      onUpdate: () => {
-        textMesh.text = `${circle.position.x.toFixed(2)} ${circle.position.y.toFixed(2)}`
-        triangleMesh.geometry.vertices[i].set(circle.position.x, circle.position.y, 0)
-        triangleMesh.geometry.verticesNeedUpdate = true
-      }
+  {
+    const mesh = new TextMesh({
+      text: '奇乐编程学院',
+      color: pallete[4],
+      font: 'zh',
+      size: 0.6,
+      // material,
+    });
+    mesh.position.set(0, -3, 0)
+    scene.add(mesh);
+  }
+
+  {
+
+
+    const material = new THREE.MeshPhysicalMaterial({
+      clearcoat: 0.1,
+      clearcoatRoughness: 0.5,
+      metalness: 0.1,
+      roughness: 0.9,
+      color: 0x00ff00,
+      normalScale: new THREE.Vector2(0.15, 0.15),
     });
 
-    globalTimeline.add(tl, '<');
-  });
+    const textMesh = new TextMesh({
+      text: '三分钟',
+      color: pallete[4],
+      font: 'zh',
+      // material,
+    });
 
-  globalTimeline.add(addFadeOut(triangleMesh))
+    // setInterval(() => {
+    //   textMesh.text = generateRandomString(10);
+    // }, 10);
+
+    textMesh.position.set(3.4, 0, 0);
+    // text.position.x -= text.basePosition * 0.5;
+    scene.add(textMesh);
+    globalTimeline.add(addJumpIn(textMesh));
+
+    const t2 = new TextMesh({ text: '<' });
+    t2.position.set(-5.5, 1, 1.01);
+    const t3 = new TextMesh({ text: '>' });
+    t3.position.set(5.5, -0.5, 1.01);
+    t2.scale.set(0.5, 0.5, 0.5);
+    t3.scale.set(0.5, 0.5, 0.5);
+
+    // t3.rotation.z = Math.PI / 2;
+    // t2.rotation.z = Math.PI / 2;
+
+    scene.add(t2);
+    scene.add(t3);
+
+
+    // addAnimation(t2);
+    // addAnimation(t3);
+    globalTimeline.add(addJumpIn(t2));
+    globalTimeline.add(addJumpIn(t3));
+  }
+
+  if (0) {
+    const stars = new Stars()
+    stars.position.z = -100;
+    scene.add(stars);
+  }
 }
+
+///////////////////////////////////////////////////////////
 
 if (0) {
-  const triangleStroke = createLine3D({
-    points: TRIANGLE_POINTS.concat(TRIANGLE_POINTS[0]),
-    lineWidth: 1,
-    color: 0x00ff00,
-  });
-  triangleStroke.position.set(-6.4, -6.4, 0.02);
-  triangleStroke.scale.set(0.2, 0.2, 0.2);
-  scene.add(triangleStroke);
+  {
+    globalTimeline.addLabel('showCone')
 
-  globalTimeline.addLabel('showTriangle')
-  globalTimeline.add(addWipeAnimation(triangleStroke, { distance: 5.0 }));
+    addLights();
 
-  globalTimeline.to(triangleStroke.material,
-    { opacity: 0 })
-}
+    const group = new THREE.Mesh();
 
+    const geometry = new THREE.ConeGeometry(
+      0.5, // radius
+      1.0, // height
+      5,  // radius segments
+      1); // height segments
 
-if (1) {
-  let gridHelper = new THREE.GridHelper(64 * 0.2, 64, 0, 0);
-  gridHelper.rotation.x = Math.PI / 2;
-  gridHelper.position.z = 0.01;
-  scene.add(gridHelper);
+    let coneMesh;
+    if (1) { // Cone mesh
+      const material = new THREE.MeshPhongMaterial({
+        color: 0x156289,
+        // emissive: 0x072534,
+        // side: THREE.DoubleSide,
+        flatShading: true,
+        // transparent:
+      });
+      coneMesh = new THREE.Mesh(geometry, material);
+      group.add(coneMesh);
 
-  globalTimeline.addLabel('showGrid')
-  globalTimeline.add(addWipeAnimation(gridHelper, {
-    distance: 10,
-  }))
-}
-
-if (1) {
-  const GRID_SIZE = 64;
-
-  let triangleData = canvasDrawTriangle();
-  let rectGroup = new THREE.Group();
-
-  for (let i = GRID_SIZE - 1; i >= 0; i--) {
-    for (let j = 0; j < GRID_SIZE; j++) {
-
-      let color;
-      if (triangleData[((i * GRID_SIZE + j) * 4) + 3] > 150) {
-        color = i * 4 + (j * 4) * 256
-      } else {
-        color = 0;
-      }
-
-      if (color > 0) {
-        let rect = createRect({ color: color });
-        rect.position.set(
-          j - GRID_SIZE * 0.5 + 0.5,
-          i - GRID_SIZE * 0.5 + 0.5,
-          0);
-        rectGroup.add(rect);
-      }
+      globalTimeline.add(addFadeIn(coneMesh))
     }
+
+    globalTimeline.set({}, {}, "+=2");
+
+    let coneWireframe;
+    if (1) { // Wireframe
+      const wireframeGeometry = new THREE.WireframeGeometry(geometry);
+      const material = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.1,
+        // side: THREE.DoubleSide,
+      });
+      coneWireframe = new THREE.LineSegments(wireframeGeometry, material);
+      group.add(coneWireframe);
+
+      globalTimeline.add(addFadeIn(coneWireframe));
+    }
+
+    globalTimeline.add(addFadeOut(coneMesh), '+=2')
+    globalTimeline.add(addFadeOut(coneWireframe), '<')
+
+    // Spinning
+    const clock = new THREE.Clock();
+    group.onBeforeRender = () => {
+      const delta = clock.getDelta();
+      // group.rotation.x += delta;
+      group.rotation.y += delta;
+      group.rotation.x = Math.sin(clock.getElapsedTime()) * 0.5;
+    }
+
+    group.position.set(0, 0, 1);
+    group.scale.set(4, 4, 4);
+    scene.add(group);
   }
 
-  globalTimeline.addLabel('drawPixels')
-  globalTimeline.fromTo(rectGroup.children.map(x => x.material),
-    { opacity: 0 },
-    {
-      opacity: 1,
-      duration: 0.1,
-      stagger: 0.01,
-      ease: 'linear'
+  const INIT_POINTS = [
+    new THREE.Vector3(10, 15, 0),
+    new THREE.Vector3(54, 15, 0),
+    new THREE.Vector3(32, 50, 0),
+  ];
+
+  const TRIANGLE_POINTS = [
+    new THREE.Vector3(10, 25, 0),
+    new THREE.Vector3(45, 5, 0),
+    new THREE.Vector3(50, 60, 0),
+  ];
+
+
+
+  let T = new THREE.Matrix4().makeScale(0.2, 0.2, 0.2).multiply(
+    new THREE.Matrix4().makeTranslation(-32, -32, 0)
+  );
+
+  if (1) { // triangle
+    globalTimeline.addLabel('showVertices')
+
+    const triangleMesh = createTriangle({
+      vertices: INIT_POINTS,
+      color: 0x7f7f7f,
+      opacity: 0.5,
+    })
+    scene.add(triangleMesh)
+
+    globalTimeline.from(triangleMesh.scale,
+      {
+        x: 0.3,
+        y: 0.3,
+        ease: 'back.inOut(1.7)',
+        duration: 1,
+      }, '<')
+    globalTimeline.add(addFadeIn(triangleMesh), '<')
+    globalTimeline.set({}, {})
+
+    TRIANGLE_POINTS.forEach(function (p, i) {
+      let circle = createObject({ type: 'circle' });
+      circle.position.set((p.x - 32) * 0.2, (p.y - 32) * 0.2, 0.05);
+      circle.scale.set(0.4, 0.4, 0.4);
+
+
+      let textMesh = new TextMesh({
+        size: 0.7,
+      })
+      textMesh.position.z = 0.05
+      textMesh.position.y = 0.8
+      circle.add(textMesh)
+
+
+      const initPos = INIT_POINTS[i].applyMatrix4(T);
+
+      const tl = gsap.timeline();
+
+      tl.add(addFadeIn(circle));
+      tl.add(addFadeIn(textMesh), '<');
+      tl.from(circle.position, {
+        x: initPos.x,
+        y: initPos.y,
+        duration: 2,
+        onUpdate: () => {
+          textMesh.text = `${circle.position.x.toFixed(2)} ${circle.position.y.toFixed(2)}`
+          triangleMesh.geometry.vertices[i].set(circle.position.x, circle.position.y, 0)
+          triangleMesh.geometry.verticesNeedUpdate = true
+        }
+      });
+
+      globalTimeline.add(tl, '<');
     });
 
-  rectGroup.scale.set(0.2, 0.2, 0.2);
-  scene.add(rectGroup);
+    globalTimeline.add(addFadeOut(triangleMesh))
+  }
+
+  if (0) {
+    const triangleStroke = createLine3D({
+      points: TRIANGLE_POINTS.concat(TRIANGLE_POINTS[0]),
+      lineWidth: 1,
+      color: 0x00ff00,
+    });
+    triangleStroke.position.set(-6.4, -6.4, 0.02);
+    triangleStroke.scale.set(0.2, 0.2, 0.2);
+    scene.add(triangleStroke);
+
+    globalTimeline.addLabel('showTriangle')
+    globalTimeline.add(addWipeAnimation(triangleStroke, { distance: 5.0 }));
+
+    globalTimeline.to(triangleStroke.material,
+      { opacity: 0 })
+  }
+
+
+  if (1) {
+    let gridHelper = new THREE.GridHelper(64 * 0.2, 64, 0, 0);
+    gridHelper.rotation.x = Math.PI / 2;
+    gridHelper.position.z = 0.01;
+    scene.add(gridHelper);
+
+    globalTimeline.addLabel('showGrid')
+    globalTimeline.add(addWipeAnimation(gridHelper, {
+      distance: 10,
+    }))
+  }
+
+  if (1) {
+    const GRID_SIZE = 64;
+
+    let triangleData = canvasDrawTriangle();
+    let rectGroup = new THREE.Group();
+
+    for (let i = GRID_SIZE - 1; i >= 0; i--) {
+      for (let j = 0; j < GRID_SIZE; j++) {
+
+        let color;
+        if (triangleData[((i * GRID_SIZE + j) * 4) + 3] > 150) {
+          color = i * 4 + (j * 4) * 256
+        } else {
+          color = 0;
+        }
+
+        if (color > 0) {
+          let rect = createRect({ color: color });
+          rect.position.set(
+            j - GRID_SIZE * 0.5 + 0.5,
+            i - GRID_SIZE * 0.5 + 0.5,
+            0);
+          rectGroup.add(rect);
+        }
+      }
+    }
+
+    globalTimeline.addLabel('drawPixels')
+    globalTimeline.fromTo(rectGroup.children.map(x => x.material),
+      { opacity: 0 },
+      {
+        opacity: 1,
+        duration: 0.1,
+        stagger: 0.01,
+        ease: 'linear'
+      });
+
+    rectGroup.scale.set(0.2, 0.2, 0.2);
+    scene.add(rectGroup);
+  }
+
+
+
+
+
+
 }
 
 
-options.timeline = 0;
-gui.add(options, 'timeline', 0, globalTimeline.totalDuration()).onChange((val) => {
-  globalTimeline.seek(val);
-})
-
-Object.keys(globalTimeline.labels).forEach(key => {
-  console.log(`${key} ${globalTimeline.labels[key]}`)
-})
 
 {
+  // Timeline GUI
+  options.timeline = 0;
+  gui.add(options, 'timeline', 0, globalTimeline.totalDuration()).onChange((val) => {
+    globalTimeline.seek(val);
+  })
+
+  Object.keys(globalTimeline.labels).forEach(key => {
+    console.log(`${key} ${globalTimeline.labels[key]}`)
+  })
+
+
+
   const folder = gui.addFolder('Timeline Labels')
   var labels = new Object();
   Object.keys(globalTimeline.labels).forEach(key => {

@@ -6,10 +6,22 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
 import fontFile from '../fonts/sourceHanBold3000';
 import gsap from 'gsap';
 import { MeshLine, MeshLineMaterial } from 'three.meshline';
+import * as THREE from 'three'
 // import font2 from '../utils/cn.json'
 
 const fontLoader = new FontLoader();
 // const font = fontLoader.load('fonts/cn.json');
+
+function createLitMaterial() {
+  const material = new THREE.MeshStandardMaterial({
+    shading: THREE.FlatShading,
+    color: 0x00ff00,
+    transparent: false,
+    opacity: 1,
+    wireframe: false
+  });
+  return material;
+}
 
 export default class TextMesh extends Object3D {
   constructor({
@@ -21,6 +33,7 @@ export default class TextMesh extends Object3D {
     opacity = 1,
     wireframe = false,
     font = 'en',
+    material = null,
   } = {}) {
     super();
 
@@ -29,15 +42,22 @@ export default class TextMesh extends Object3D {
 
     if (font == 'zh') {
       this.font = fontLoader.parse(require('../fonts/sourceHanBold3000'))
-    }  else {
+    } else {
       this.font = fontLoader.parse(require('../fonts/muliBold').default);
     }
 
-    this.material = new MeshBasicMaterial({
-      color,
-      transparent: true,
-      wireframe,
-    });
+    if (material) {
+      this.material = material
+    } else {
+      this.material = new MeshBasicMaterial({
+        color,
+        transparent: true,
+        wireframe,
+      });
+    }
+
+
+    
 
 
     this.text = text;
@@ -179,10 +199,31 @@ export default class TextMesh extends Object3D {
 
     // Text shapes
     shapes.forEach((shape) => {
-      const geometry = new ShapeBufferGeometry(shape);
+
+      let geometry;
+
+      if (1) {
+        geometry = new ShapeBufferGeometry(shape);
+      } else {
+        // Geometry reshape
+        const extrudeSettings = {
+          steps: 2,
+          depth: 0.1,
+
+          bevelEnabled: false,
+          bevelThickness: 1,
+          bevelSize: 1,
+          bevelOffset: 0,
+          bevelSegments: 1
+        };
+
+        geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      }
 
       // Shift letter to position whole text into center
       geometry.translate(xMid, 0, 0);
+
+
 
       // mesh
       const mesh = new Mesh(geometry, this.material);
