@@ -407,6 +407,11 @@ requestAnimationFrame(animate);
 // startRecording();
 
 
+function randomInt(min, max) {
+  var random = Math.floor(Math.random() * (max - min + 1)) + min;
+  return random;
+}
+
 function createLine() {
   var geometry = new THREE.Geometry();
   for (var j = 0; j < Math.PI; j += 2 * Math.PI / 100) {
@@ -1227,6 +1232,64 @@ function createTriangle({
   return mesh;
 }
 
+function addShake2D(object3d,
+  {
+    shakes = 20,
+    speed = 0.015,
+    strength = 0.5,
+  } = {}) {
+  function R(max, min) { return Math.random() * (max - min) + min };
+
+  var tl = new TimelineLite();
+  tl.set(object3d, { x: "+=0" }); // this creates a full _gsTransform on object3d
+  var transforms = object3d._gsTransform;
+
+  //store the transform values that exist before the shake so we can return to them later
+  var initProps = {
+    x: object3d.position.x,
+    y: object3d.position.y,
+    rotation: object3d.position.z,
+  }
+
+  //shake a bunch of times
+  for (var i = 0; i < shakes; i++) {
+    tl.to(object3d.position, speed, {
+      x: initProps.x + R(-strength, strength),
+      y: initProps.y + R(-strength, strength),
+      // rotation: initProps.rotation + R(-5, 5)
+    })
+  }
+  //return to pre-shake values
+  tl.to(object3d.position, speed, {
+    x: initProps.x,
+    y: initProps.y,
+    // scale: initProps.scale, 
+    // rotation: initProps.rotation 
+  })
+
+  return tl;
+};
+
+function createTriangleOutline({
+  color = '0xffffff'
+} = {}) {
+  const VERTICES = [
+    new THREE.Vector3(-1.732, -1, 0),
+    new THREE.Vector3(1.732, -1, 0),
+    new THREE.Vector3(0, 2, 0),
+  ]
+
+  const triangleStroke = createLine3D({
+    points: VERTICES.concat(VERTICES[0]),
+    lineWidth: 0.3,
+    color,
+  });
+  triangleStroke.position.set(-6.4, -6.4, 0.02);
+  // triangleStroke.scale.set(0.2, 0.2, 0.2);
+  // scene.add(triangleStroke);
+  return triangleStroke
+}
+
 ///////////////////////////////////////////////////////////
 // Main animation
 
@@ -1297,7 +1360,7 @@ if (1) {
     x: 0.01,
     y: 0.01,
     z: 0.01,
-    duration: 0.8,
+    duration: 1.0,
     ease: 'elastic.out(1, 0.2)',
   }), '<')
 
@@ -1305,21 +1368,25 @@ if (1) {
     x: 0.01,
     y: 0.01,
     z: 0.01,
-    duration: 0.8,
+    duration: 1.0,
   }), '<')
 
   globalTimeline.to(bigTriangles.children.map(x => x.material), {
     opacity: 0,
-    duration: 0.8,
+    duration: 1.0,
   }, '<')
 
-  // globalTimeline.from(root.position,
+  // globalTimeline.to(root.position,
   //   {
   //     x: 1,
   //     y: -1,
   //     ease: 'rough({ strength: 10, points: 50 })',
-  //     duration: 0.2
+  //     duration: 2.0,
+  //     yoyo: true,
+  //     repeat: -1,
   //   }, '-=0.7')
+
+  globalTimeline.add(addShake2D(root), '<0.1')
 
 
 
@@ -1400,7 +1467,69 @@ if (1) {
     stars.position.z = -100;
     scene.add(stars);
   }
+
+  // EXPLOSION
+  {
+    const range = 10
+    const explosionGroup = new THREE.Group();
+    for (var i = 0; i < 30; i++) {
+      const randomParticleType = randomInt(0, 1);
+      // const randomSize = generateRandomNumber(5, 10)
+      const destinationX = (Math.random() - 0.5) * range
+      const destinationY = (Math.random() - 0.5) * range
+
+      let mesh
+      if (randomParticleType == 0) {
+        mesh = createTriangleOutline({
+          color: pallete[2],
+        })
+      } else {
+        mesh = createTriangle({
+          color: pallete[1],
+        })
+      }
+      mesh.scale.set(0.1, 0.1, 0.1)
+      explosionGroup.add(mesh)
+
+      mesh.position.set(destinationX, destinationY, 1);
+      mesh.rotation.z = Math.random() * Math.PI
+    }
+
+    scene.add(explosionGroup)
+
+
+    const tl = gsap.timeline({
+      defaults: {
+        duration: 1.5,
+        ease: 'expo.out',
+      }
+    })
+    tl.from(explosionGroup.children.map(x => x.material),
+      {
+        opacity: 0,
+      }, '<')
+    tl.from(explosionGroup.children.map(x => x.position),
+      {
+        x: 0,
+        y: 0,
+      }, '<')
+    tl.from(explosionGroup.children.map(x => x.scale),
+      {
+        x: 0.001,
+        y: 0.001,
+      }, '<')
+    tl.from(explosionGroup.children.map(x => x.rotation),
+      {
+        z: 0,
+      }, '<')
+    globalTimeline.add(tl, '<')
+
+  }
+
 }
+
+
+
 
 ///////////////////////////////////////////////////////////
 
