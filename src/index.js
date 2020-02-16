@@ -1145,15 +1145,31 @@ function createGrid({
   return group;
 }
 
-function addFadeIn(object3d) {
-  object3d.material.transparent = true;
-  const tween = gsap.from(object3d.material, {
-    opacity: 0,
-    onStart: () => {
-      object3d.visible = true
-    },
-  });
-  return tween;
+function addFadeIn(object3d, {
+  duration = 0.5,
+} = {}) {
+  const tl = gsap.timeline({ defaults: { duration } });
+
+  if (object3d.material !== undefined) {
+    tl.set(object3d.material, {
+      transparent: true,
+    }, '<')
+
+    const tween = gsap.from(object3d.material, {
+      opacity: 0,
+      onStart: () => {
+        object3d.visible = true
+      },
+    });
+    tl.add(tween, '<')
+  }
+
+  object3d.children.forEach(x => {
+    const tween = addFadeIn(x)
+    tl.add(tween, '<')
+  })
+
+  return tl
 }
 
 function addFadeOut(object3d) {
@@ -1168,12 +1184,10 @@ function addFadeOut(object3d) {
 }
 
 function addJumpIn(object3d) {
-  object3d.material.transparent = true;
-
   let tl = gsap.timeline();
   tl.from(object3d.position, {
-    y: 2,
-    ease: 'elastic.out(1, 0.3)',
+    y: object3d.position.y + 2,
+    ease: 'elastic.out(1, 0.2)',
     duration: 0.5,
   });
 
@@ -1184,6 +1198,76 @@ function addJumpIn(object3d) {
 
   return tl;
 }
+
+function jumpTo(object3d, {
+  x = 0,
+  y = 0,
+}) {
+  let tl = gsap.timeline();
+  tl.to(object3d.position, {
+    x,
+    y,
+    ease: 'elastic.out(1, 0.2)',
+    duration: 0.5,
+  });
+
+  tl.from(object3d.material, {
+    opacity: 0,
+    duration: 0.5,
+  }, '<');
+
+  return tl;
+}
+
+function moveTo(object3d, {
+  x = 0,
+  y = 0,
+} = {}) {
+  let tl = gsap.timeline();
+  tl.to(object3d.position, {
+    x,
+    y,
+    ease: 'expo.out',
+    duration: 0.5,
+  });
+  return tl;
+}
+
+function flyIn(object3d, {
+  dx = 0.0,
+  dy = 0.0,
+  duration = 0.5,
+  deltaRotation = -Math.PI * 4,
+  beginScale = 0.01,
+  ease = 'power2.out',
+} = {}) {
+  let tl = gsap.timeline({
+    defaults: {
+      duration,
+      ease,
+    }
+  });
+
+  tl.from(object3d.position, {
+    x: object3d.position.x + dx,
+    y: object3d.position.y + dy,
+  });
+
+  tl.from(object3d.rotation, {
+    z: object3d.rotation.z + deltaRotation,
+  }, '<');
+
+  tl.from(object3d.scale, {
+    x: beginScale,
+    y: beginScale,
+    z: beginScale,
+  }, '<')
+
+  tl.add(addFadeIn(object3d), '<');
+
+  return tl;
+}
+
 
 function addLights() {
   const light0 = new THREE.PointLight(0xffffff, 1, 0);
@@ -1235,7 +1319,7 @@ function createTriangle({
 function addShake2D(object3d,
   {
     shakes = 20,
-    speed = 0.015,
+    speed = 0.01,
     strength = 0.5,
   } = {}) {
   function R(max, min) { return Math.random() * (max - min) + min };
@@ -1253,9 +1337,10 @@ function addShake2D(object3d,
 
   //shake a bunch of times
   for (var i = 0; i < shakes; i++) {
+    const offset = R(-strength, strength)
     tl.to(object3d.position, speed, {
-      x: initProps.x + R(-strength, strength),
-      y: initProps.y + R(-strength, strength),
+      x: initProps.x + offset,
+      y: initProps.y - offset,
       // rotation: initProps.rotation + R(-5, 5)
     })
   }
@@ -1290,10 +1375,187 @@ function createTriangleOutline({
   return triangleStroke
 }
 
+function addExplosionAnimation(objectGroup, {
+  ease = 'expo.out',
+  duration = 1.5,
+} = {}) {
+  const tl = gsap.timeline({
+    defaults: {
+      duration,
+      ease: ease,
+    }
+  })
+  // tl.add(addFadeIn(objectGroup, { duration }), '<')
+
+  tl.from(objectGroup.children.map(x => x.material),
+    {
+      opacity: 0,
+    }, '<')
+
+
+  tl.from(objectGroup.children.map(x => x.position),
+    {
+      x: 0,
+      y: 0,
+    }, '<')
+  tl.from(objectGroup.children.map(x => x.scale),
+    {
+      x: 0.001,
+      y: 0.001,
+    }, '<')
+  tl.from(objectGroup.children.map(x => x.rotation),
+    {
+      z: 0,
+    }, '<')
+  return tl
+}
+
+function addCollapseAnimation(objectGroup) {
+  return addExplosionAnimation(objectGroup, {
+    ease: 'expo.in',
+  }).reverse()
+}
+
 ///////////////////////////////////////////////////////////
 // Main animation
 
 if (1) {
+
+  const TRI_X = -3
+  const TRI_Y = 1
+
+
+  {
+    const D = 1
+    const S = 0.6
+
+    const root = new THREE.Group()
+    root.scale.set(2, 2, 2)
+    scene.add(root);
+
+    const codeSnippetGroup = new THREE.Group()
+    root.add(codeSnippetGroup)
+
+
+    const lessThanSign = new TextMesh({ text: '<' })
+    codeSnippetGroup.add(lessThanSign)
+    lessThanSign.position.set(-D, 0, 1.01)
+    lessThanSign.scale.set(S, 1.0, 1.0)
+
+    const greaterThanSign = new TextMesh({ text: '>' })
+    codeSnippetGroup.add(greaterThanSign)
+    greaterThanSign.position.set(D, 0, 1.01)
+    greaterThanSign.scale.set(S, 1.0, 1.0)
+
+
+    globalTimeline.add(flyIn(codeSnippetGroup, {
+      dx: 0,
+      deltaRotation: Math.PI * 5
+    }))
+
+
+    const slash = new TextMesh({ text: '/' })
+    slash.position.set(0.1, 2, 1)
+    root.add(slash);
+    globalTimeline.add(flyIn(slash, {
+      dx: -10
+    }), '-=0.3')
+
+    globalTimeline.add(jumpTo(slash, {
+      x: 0.1,
+      y: 0.2,
+    }), '+=0.5')
+
+    // let s2 = slash.clone()
+    // scene.add(s2)
+    // s2.scale.set(4,4,4)
+
+    globalTimeline.add(addShake2D(root), '-=0.4')
+
+
+
+    // scene.add(new THREE.BoxHelper(codeSnippetGroup, 0xffff00));
+
+
+    // addAnimation(t2);
+    // // addAnimation(t3);
+    // globalTimeline.add(addFlyIn(t2));
+    // globalTimeline.add(addJumpIn(t3));
+
+
+    // EXPLOSION
+
+    const explosionGroup = new THREE.Group();
+    root.add(explosionGroup)
+
+    {
+
+      for (var i = 0; i < 100; i++) {
+        const randomParticleType = randomInt(0, 1);
+
+
+        // const randomSize = generateRandomNumber(5, 10)
+        // const destinationX = (Math.random() - 0.5) * range
+        // const destinationY = (Math.random() - 0.5) * range
+
+        let mesh
+        if (randomParticleType == 0) {
+          mesh = createTriangleOutline({
+            color: pallete[2],
+          })
+        } else {
+          mesh = createTriangle({
+            color: pallete[1],
+          })
+        }
+        mesh.scale.set(0.05, 0.05, 0.05)
+        explosionGroup.add(mesh)
+
+        {
+          const radiusMin = 1
+          const radiusMax = 6
+
+          const r = radiusMin + (radiusMax - radiusMin) * Math.random()
+          const theta = Math.random() * 2 * Math.PI
+          const x = r * Math.cos(theta)
+          const y = r * Math.sin(theta)
+          mesh.position.set(x, y, 1);
+        }
+
+
+        mesh.rotation.z = Math.random() * Math.PI * 4
+      }
+
+
+
+      globalTimeline.add(addExplosionAnimation(explosionGroup, {
+        duration: 3,
+      }), '<')
+    }
+
+    globalTimeline.add(flyIn(root, {
+      ease: 'power2.in',
+    }).reverse())
+
+    globalTimeline.add(addCollapseAnimation(explosionGroup), '<')
+
+
+    globalTimeline.add(moveTo(root, {
+      x: TRI_X,
+      y: TRI_Y,
+    }), '<')
+
+  }
+
+
+
+
+
+
+
+
+
+
   // addLights();
 
   // const light0 = new THREE.PointLight(0xffffff, 1, 1.5);
@@ -1303,11 +1565,10 @@ if (1) {
   let root = new THREE.Group()
   scene.add(root)
 
-  const tri_x = -3
-  const tri_y = 1
+
 
   let triangles = new THREE.Group()
-  triangles.position.set(tri_x, tri_y, -0.1)
+  triangles.position.set(TRI_X, TRI_Y, -0.1)
   root.add(triangles)
 
   for (let i = 0; i < 4; i++) {
@@ -1326,8 +1587,41 @@ if (1) {
     triangles.add(tri)
   }
 
+
+
+  const textMesh = new TextMesh({
+    text: '编程',
+    color: pallete[4],
+    font: 'zh',
+    size: 1.5,
+    // material,
+  });
+  textMesh.position.z += 0.1
+  // textMesh.position.y -= 0.1
+  triangles.add(textMesh)
+  // scene.add(textMesh);
+
+  globalTimeline.set({}, {}, '-=1.3')
+
+  globalTimeline.fromTo(triangles, { visible: false }, { visible: true }, '<')
+
+  globalTimeline.add(gsap.from(triangles.scale, {
+    x: 0.01,
+    y: 0.01,
+    z: 0.01,
+    duration: 1.0,
+    ease: 'elastic.out(1, 0.2)',
+  }), '<')
+
+  // globalTimeline.add(addFadeIn(triangles, { duration: 1.0 }), '<')
+
+
+
+
+
+
   let bigTriangles = new THREE.Group()
-  bigTriangles.position.set(tri_x, tri_y, -0.1)
+  bigTriangles.position.set(TRI_X, TRI_Y, -0.1)
   root.add(bigTriangles)
   for (let i = 0; i < 4; i++) {
     const tri = createTriangle({
@@ -1343,26 +1637,11 @@ if (1) {
     bigTriangles.add(tri)
   }
 
-  const textMesh = new TextMesh({
-    text: '编程',
-    color: pallete[4],
-    font: 'zh',
-    // material,
-  });
-  textMesh.position.z += 0.1
-  textMesh.position.y -= 0.7
-  triangles.add(textMesh)
-  // scene.add(textMesh);
+  // globalTimeline.add(addFadeIn(bigTriangles, { duration: 1.0 }), '<')
 
-  globalTimeline.set({}, {}, '+=1')
-
-  globalTimeline.add(gsap.from(triangles.scale, {
-    x: 0.01,
-    y: 0.01,
-    z: 0.01,
-    duration: 1.0,
-    ease: 'elastic.out(1, 0.2)',
-  }), '<')
+  // bigTriangles.visible = false
+  // globalTimeline.set(bigTriangles, {visible: false}, '<')
+  globalTimeline.fromTo(bigTriangles, { visible: false }, { visible: true }, '<')
 
   globalTimeline.add(gsap.from(bigTriangles.scale, {
     x: 0.01,
@@ -1415,8 +1694,6 @@ if (1) {
   }
 
   {
-
-
     const material = new THREE.MeshPhysicalMaterial({
       clearcoat: 0.1,
       clearcoatRoughness: 0.5,
@@ -1441,26 +1718,8 @@ if (1) {
     // text.position.x -= text.basePosition * 0.5;
     scene.add(textMesh);
     globalTimeline.add(addJumpIn(textMesh));
-
-    const t2 = new TextMesh({ text: '<' });
-    t2.position.set(-5.5, 1, 1.01);
-    const t3 = new TextMesh({ text: '>' });
-    t3.position.set(5.5, -0.5, 1.01);
-    t2.scale.set(0.5, 0.5, 0.5);
-    t3.scale.set(0.5, 0.5, 0.5);
-
-    // t3.rotation.z = Math.PI / 2;
-    // t2.rotation.z = Math.PI / 2;
-
-    scene.add(t2);
-    scene.add(t3);
-
-
-    // addAnimation(t2);
-    // addAnimation(t3);
-    globalTimeline.add(addJumpIn(t2));
-    globalTimeline.add(addJumpIn(t3));
   }
+
 
   if (0) {
     const stars = new Stars()
@@ -1468,63 +1727,7 @@ if (1) {
     scene.add(stars);
   }
 
-  // EXPLOSION
-  {
-    const range = 10
-    const explosionGroup = new THREE.Group();
-    for (var i = 0; i < 30; i++) {
-      const randomParticleType = randomInt(0, 1);
-      // const randomSize = generateRandomNumber(5, 10)
-      const destinationX = (Math.random() - 0.5) * range
-      const destinationY = (Math.random() - 0.5) * range
 
-      let mesh
-      if (randomParticleType == 0) {
-        mesh = createTriangleOutline({
-          color: pallete[2],
-        })
-      } else {
-        mesh = createTriangle({
-          color: pallete[1],
-        })
-      }
-      mesh.scale.set(0.1, 0.1, 0.1)
-      explosionGroup.add(mesh)
-
-      mesh.position.set(destinationX, destinationY, 1);
-      mesh.rotation.z = Math.random() * Math.PI
-    }
-
-    scene.add(explosionGroup)
-
-
-    const tl = gsap.timeline({
-      defaults: {
-        duration: 1.5,
-        ease: 'expo.out',
-      }
-    })
-    tl.from(explosionGroup.children.map(x => x.material),
-      {
-        opacity: 0,
-      }, '<')
-    tl.from(explosionGroup.children.map(x => x.position),
-      {
-        x: 0,
-        y: 0,
-      }, '<')
-    tl.from(explosionGroup.children.map(x => x.scale),
-      {
-        x: 0.001,
-        y: 0.001,
-      }, '<')
-    tl.from(explosionGroup.children.map(x => x.rotation),
-      {
-        z: 0,
-      }, '<')
-    globalTimeline.add(tl, '<')
-
-  }
 
 }
 

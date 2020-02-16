@@ -26,7 +26,7 @@ function createLitMaterial() {
 export default class TextMesh extends Object3D {
   constructor({
     text = '',
-    size = 1.5,
+    size = 1.0,
     letterSpacing = 0.03,
     color = '#ffffff',
     duration = 0.5,
@@ -196,6 +196,7 @@ export default class TextMesh extends Object3D {
     const geometry = new ShapeBufferGeometry(shapes);
     geometry.computeBoundingBox();
     const xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
+    const yMid = - 0.5 * (geometry.boundingBox.max.y - geometry.boundingBox.min.y);
 
     // Text shapes
     shapes.forEach((shape) => {
@@ -221,9 +222,7 @@ export default class TextMesh extends Object3D {
       }
 
       // Shift letter to position whole text into center
-      geometry.translate(xMid, 0, 0);
-
-
+      geometry.translate(xMid, yMid, 0);
 
       // mesh
       const mesh = new Mesh(geometry, this.material);
