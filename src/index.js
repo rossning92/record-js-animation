@@ -202,13 +202,13 @@ function setupScene(width, height) {
       expandGeometry: 0,
       interpolateGeometry: 1,
       smearIntensity: 1,
-      blurTransparent: false,
+      blurTransparent: true,
       renderCameraBlur: true
     };
     let motionPass = new MotionBlurPass(scene, camera, options);
     composer.addPass(motionPass);
 
-    // motionPass.debug.display = 2;
+    motionPass.debug.display = 0;
     // motionPass.renderToScreen = true;
   }
 

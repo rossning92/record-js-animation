@@ -168,7 +168,7 @@ export default class TextMesh extends Object3D {
         if (letter === ' ') {
           totalWidth += this.size * 0.5;
         } else {
-          const geom = new ShapeGeometry(
+          const geom = new THREE.ShapeBufferGeometry(
             this.font.generateShapes(letter, this.size, 1),
           );
           geom.computeBoundingBox();
