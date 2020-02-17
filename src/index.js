@@ -25,6 +25,9 @@ import { WaterPass } from './utils/WaterPass';
 
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 
+import icon_files from './icons.json'
+
+
 gsap.ticker.remove(gsap.updateRoot);
 
 
@@ -1387,10 +1390,10 @@ function addExplosionAnimation(objectGroup, {
   })
   // tl.add(addFadeIn(objectGroup, { duration }), '<')
 
-  tl.from(objectGroup.children.map(x => x.material),
-    {
-      opacity: 0,
-    }, '<')
+  // tl.from(objectGroup.children.map(x => x.material),
+  //   {
+  //     opacity: 0,
+  //   }, '<')
 
 
   tl.from(objectGroup.children.map(x => x.position),
@@ -1416,10 +1419,107 @@ function addCollapseAnimation(objectGroup) {
   }).reverse()
 }
 
+function getCompoundBoundingBox(object3D) {
+  var box = null;
+  object3D.traverse(function (obj3D) {
+    var geometry = obj3D.geometry;
+    if (geometry === undefined) return;
+    geometry.computeBoundingBox();
+    if (box === null) {
+      box = geometry.boundingBox;
+    } else {
+      box.union(geometry.boundingBox);
+    }
+  });
+  return box;
+}
+
+async function loadSVG(url, {
+  color = null
+} = {}) {
+  return new Promise(
+    (resolve, reject) => {
+
+      // instantiate a loader
+      let loader = new SVGLoader();
+
+      // load a SVG resource
+      loader.load(
+        // resource URL
+        url,
+        // called when the resource is loaded
+        function (data) {
+
+          let paths = data.paths;
+          let group = new THREE.Group();
+
+          for (let i = 0; i < paths.length; i++) {
+
+            let path = paths[i];
+
+            let material = new THREE.MeshBasicMaterial({
+              color: color !== null ? color : path.color,
+              side: THREE.DoubleSide,
+              depthWrite: false
+            });
+
+            let shapes = path.toShapes(true);
+
+            for (let j = 0; j < shapes.length; j++) {
+
+              let shape = shapes[j];
+              let geometry = new THREE.ShapeBufferGeometry(shape);
+              let mesh = new THREE.Mesh(geometry, material);
+              group.add(mesh);
+
+            }
+
+          }
+
+          const box = getCompoundBoundingBox(group)
+          const boxCenter = box.getCenter()
+          const boxSize = box.getSize()
+          const scale = 1.0 / Math.max(boxSize.x, boxSize.y, boxSize.z)
+
+          group.scale.multiplyScalar(scale)
+          group.scale.y *= -1
+
+          group.position.set(-boxCenter.x * scale, boxCenter.y * scale, -boxCenter.z * scale)
+
+
+          const parentGroup = new THREE.Group()
+          parentGroup.add(group)
+          // scene.add(parentGroup)
+
+          // globalTimeline.add(flyIn(parentGroup))
+
+          resolve(parentGroup)
+
+        },
+        // called when loading is in progresses
+        function (xhr) {
+
+          console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+
+        },
+        // called when loading has errors
+        function (error) {
+          console.log('An error happened');
+          reject(error)
+        }
+      );
+
+    }
+  );
+}
+
+
+
 ///////////////////////////////////////////////////////////
 // Main animation
 
-if (1) {
+
+(async () => {
 
   const TRI_X = -3
   const TRI_Y = 1
@@ -1483,21 +1583,25 @@ if (1) {
 
 
     // EXPLOSION
-
     const explosionGroup = new THREE.Group();
     root.add(explosionGroup)
 
-    {
+
+    if (1) { // LOAD ICONS
+      const icons = await Promise.all(icon_files.map(file => loadSVG('/icons/' + file, {
+        color: randomInt(0, 1) == 0 ? pallete[1] : pallete[2],
+      })))
+      icons.forEach(mesh => {
+        mesh.scale.multiplyScalar(0.3)
+        explosionGroup.add(mesh)
+      })
+
+    } else { // Triangles and triangle outlines
 
       for (var i = 0; i < 100; i++) {
-        const randomParticleType = randomInt(0, 1);
-
-
-        // const randomSize = generateRandomNumber(5, 10)
-        // const destinationX = (Math.random() - 0.5) * range
-        // const destinationY = (Math.random() - 0.5) * range
-
         let mesh
+
+        const randomParticleType = randomInt(0, 1);
         if (randomParticleType == 0) {
           mesh = createTriangleOutline({
             color: pallete[2],
@@ -1509,7 +1613,13 @@ if (1) {
         }
         mesh.scale.set(0.05, 0.05, 0.05)
         explosionGroup.add(mesh)
+      }
+    }
 
+    {
+      for (var i = 0; i < explosionGroup.children.length; i++) {
+
+        const mesh = explosionGroup.children[i]
         {
           const radiusMin = 1
           const radiusMax = 6
@@ -1519,9 +1629,8 @@ if (1) {
           const x = r * Math.cos(theta)
           const y = r * Math.sin(theta)
           mesh.position.set(x, y, 1);
+          mesh.scale.multiplyScalar(Math.random() * 0.5 + 0.5)
         }
-
-
         mesh.rotation.z = Math.random() * Math.PI * 4
       }
 
@@ -1731,7 +1840,39 @@ if (1) {
 
 
 
-}
+  { // Timeline GUI
+
+    options.timeline = 0;
+    gui.add(options, 'timeline', 0, globalTimeline.totalDuration()).onChange((val) => {
+      globalTimeline.seek(val);
+    })
+
+    Object.keys(globalTimeline.labels).forEach(key => {
+      console.log(`${key} ${globalTimeline.labels[key]}`)
+    })
+
+
+
+    const folder = gui.addFolder('Timeline Labels')
+    var labels = new Object();
+    Object.keys(globalTimeline.labels).forEach(key => {
+
+      const label = key;
+      const time = globalTimeline.labels[key];
+
+      console.log(this);
+      labels[label] = () => {
+        globalTimeline.seek(time);
+      };
+      folder.add(labels, label);
+    })
+  }
+
+
+
+
+
+})();
 
 
 
@@ -1956,30 +2097,6 @@ if (0) {
 
 
 
-{
-  // Timeline GUI
-  options.timeline = 0;
-  gui.add(options, 'timeline', 0, globalTimeline.totalDuration()).onChange((val) => {
-    globalTimeline.seek(val);
-  })
-
-  Object.keys(globalTimeline.labels).forEach(key => {
-    console.log(`${key} ${globalTimeline.labels[key]}`)
-  })
 
 
 
-  const folder = gui.addFolder('Timeline Labels')
-  var labels = new Object();
-  Object.keys(globalTimeline.labels).forEach(key => {
-
-    const label = key;
-    const time = globalTimeline.labels[key];
-
-    console.log(this);
-    labels[label] = () => {
-      globalTimeline.seek(time);
-    };
-    folder.add(labels, label);
-  })
-}
