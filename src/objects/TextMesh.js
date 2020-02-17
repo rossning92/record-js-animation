@@ -27,37 +27,34 @@ export default class TextMesh extends Object3D {
   constructor({
     text = '',
     size = 1.0,
-    letterSpacing = 0.03,
+    letterSpacing = 0.05,
     color = '#ffffff',
-    duration = 0.5,
     opacity = 1,
     wireframe = false,
     font = 'en',
     material = null,
   } = {}) {
-    super();
+    super()
 
-    this.basePosition = 0;
-    this.size = size;
+    this.basePosition = 0
+    this.size = size
+    this.color = color
+    this.letterSpacing = letterSpacing
 
     if (font == 'zh') {
       this.font = fontLoader.parse(require('../fonts/sourceHanBold3000'))
     } else {
-      this.font = fontLoader.parse(require('../fonts/muliBold').default);
+      this.font = fontLoader.parse(require('../fonts/muliBold').default)
     }
 
     if (material) {
       this.material = material
     } else {
-      this.material = new MeshBasicMaterial({
-        color,
-        transparent: true,
-        wireframe,
-      });
+      this.material = null
     }
 
 
-    
+
 
 
     this.text = text;
@@ -155,81 +152,100 @@ export default class TextMesh extends Object3D {
       this.add(strokeText);
     }
 
-    if (0) {
-      // Animation
-      this.children.forEach((letter, i) => {
-        letter.material.opacity = 0;
-      });
-
-      this.children.forEach((letter, i) => {
-        const vals = {
-          opacity: 0,
-          position: -size * 2,
-          rotation: -Math.PI / 2,
-        };
-        gsap.to(vals, duration, {
-          opacity: opacity,
-          position: 0,
-          rotation: 0,
-
-          ease: "back.out(1)",  // https://greensock.com/docs/v3/Eases
-          onUpdate: () => {
-            letter.material.opacity = vals.opacity;
-            letter.position.y = vals.position;
-            letter.position.z = vals.position * 2;
-            letter.rotation.x = vals.rotation;
-          },
-          delay: i * 0.02 + 1
-        }, `-=${duration - 0.03}`);
-      });
-    }
-
   }
 
   set text(text) {
     this.children.length = 0;
 
-    // Generate text shapes
-    const shapes = this.font.generateShapes(text, this.size);
 
-    // Compute xMid
-    const geometry = new ShapeBufferGeometry(shapes);
-    geometry.computeBoundingBox();
-    const xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
-    const yMid = - 0.5 * (geometry.boundingBox.max.y - geometry.boundingBox.min.y);
 
-    // Text shapes
-    shapes.forEach((shape) => {
+    if (1) {
+      let totalWidth = 0
+      const letters = [...text]
+      const letterSize = []
+      let minY = 999, maxY = -999
+      letters.forEach((letter) => {
+        if (letter === ' ') {
+          totalWidth += this.size * 0.5;
+        } else {
+          const geom = new ShapeGeometry(
+            this.font.generateShapes(letter, this.size, 1),
+          );
+          geom.computeBoundingBox();
+          const mat = new MeshBasicMaterial({
+            color: this.color,
+            // wireframe,
+          });
+          const mesh = new Mesh(geom, mat);
 
-      let geometry;
+          // mesh.position.x = basePosition;
+          letterSize.push(totalWidth)
+          totalWidth += geom.boundingBox.max.x + this.letterSpacing;
 
-      if (1) {
-        geometry = new ShapeBufferGeometry(shape);
-      } else {
-        // Geometry reshape
-        const extrudeSettings = {
-          steps: 2,
-          depth: 0.1,
+          minY = Math.min(minY, geom.boundingBox.min.y)
+          maxY = Math.max(maxY, geom.boundingBox.max.y)
+          // minX
 
-          bevelEnabled: false,
-          bevelThickness: 1,
-          bevelSize: 1,
-          bevelOffset: 0,
-          bevelSegments: 1
-        };
+          this.add(mesh);
+        }
+      })
 
-        geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-      }
+      this.children.forEach((letter, i) => {
+        letter.position.set(-0.5 * totalWidth + letterSize[i], -0.5 * (maxY - minY), 0)
 
-      // Shift letter to position whole text into center
-      geometry.translate(xMid, yMid, 0);
+      })
+    }
 
-      // mesh
-      const mesh = new Mesh(geometry, this.material);
 
-      // mesh.position.x = this.basePosition;
-      // this.basePosition += geometry.boundingBox.max.x + letterSpacing;
-      this.add(mesh);
-    });
+    else {
+      // Generate text shapes
+      const shapes = this.font.generateShapes(text, this.size);
+
+      // Compute xMid
+      const geometry = new ShapeBufferGeometry(shapes);
+      geometry.computeBoundingBox();
+      const xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
+      const yMid = - 0.5 * (geometry.boundingBox.max.y - geometry.boundingBox.min.y);
+
+      // Text shapes
+      shapes.forEach((shape, i) => {
+
+        let geometry;
+
+        if (1) {
+          geometry = new ShapeBufferGeometry(shape);
+        } else {
+          // Geometry reshape
+          const extrudeSettings = {
+            steps: 2,
+            depth: 0.1,
+
+            bevelEnabled: false,
+            bevelThickness: 1,
+            bevelSize: 1,
+            bevelOffset: 0,
+            bevelSegments: 1
+          };
+
+          geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        }
+
+        // Shift letter to position whole text into center
+        geometry.translate(xMid, yMid, 0);
+
+        // Separate material for animation
+        const material = new MeshBasicMaterial({
+          color: this.color,
+          transparent: true,
+        })
+
+        const mesh = new Mesh(geometry, material);
+
+        // mesh.position.x = this.basePosition;
+        // this.basePosition += geometry.boundingBox.max.x + letterSpacing;
+        this.add(mesh);
+      });
+    }
+
   }
 }

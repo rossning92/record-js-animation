@@ -153,27 +153,6 @@ function setupScene(width, height) {
     camera.lookAt(new Vector3(0, 0, 0));
 
 
-    // Camera animation
-    if (0) {
-      const vals = {
-        x: -2,
-        y: -2,
-        z: 20,
-      };
-      gsap.to(vals, {
-        x: 0,
-        y: 0,
-        z: 10,
-        onUpdate: () => {
-          camera.position.set(vals.x, vals.y, vals.z);
-          camera.lookAt(new Vector3(0, 0, 0));
-        },
-        duration: 2.5,
-        ease: "back.out(1)",
-        // delay: 2.5,
-      });
-    }
-
 
   } else {
     const aspect = width / height;
@@ -242,7 +221,9 @@ function setupScene(width, height) {
     waterPass.factor = 0.1;
     composer.addPass(waterPass);
     // alert();
+  }
 
+  if (0) {
     const glitchPass = new GlitchPass();
     composer.addPass(glitchPass);
 
@@ -299,6 +280,21 @@ function animate(time) {
 
   /* Record Video */
   if (capturer) capturer.capture(renderer.domElement);
+}
+
+function cameraMoveTo({
+  x = 0,
+  y = 0,
+  z = 10,
+}) {
+  return gsap.to(camera.position, {
+    x, y, z,
+    onUpdate: () => {
+      camera.lookAt(new Vector3(0, 0, 0));
+    },
+    duration: 0.5,
+    ease: "expo.out",
+  });
 }
 
 function createText({
@@ -1153,18 +1149,22 @@ function addFadeIn(object3d, {
 } = {}) {
   const tl = gsap.timeline({ defaults: { duration } });
 
-  if (object3d.material !== undefined) {
-    tl.set(object3d.material, {
+  if (object3d.material != null) {
+    tl.fromTo(object3d.material, {
+      transparent: false,
+      visible: false,
+    }, {
       transparent: true,
+      visible: true,
     }, '<')
 
-    const tween = gsap.from(object3d.material, {
+    tl.from(object3d.material, {
       opacity: 0,
       onStart: () => {
         object3d.visible = true
       },
-    });
-    tl.add(tween, '<')
+      duration,
+    }, '<')
   }
 
   object3d.children.forEach(x => {
@@ -1173,6 +1173,17 @@ function addFadeIn(object3d, {
   })
 
   return tl
+}
+
+function setOpacity(object3d, opacity = 1.0) {
+  if (object3d.material != null) {
+    object3d.material.transparent = true
+    object3d.material.opacity = opacity
+  }
+
+  object3d.children.forEach(x => {
+    setOpacity(x, opacity)
+  })
 }
 
 function addFadeOut(object3d) {
@@ -1187,17 +1198,18 @@ function addFadeOut(object3d) {
 }
 
 function addJumpIn(object3d) {
+  const duration = 0.5
+
   let tl = gsap.timeline();
   tl.from(object3d.position, {
     y: object3d.position.y + 2,
     ease: 'elastic.out(1, 0.2)',
-    duration: 0.5,
+    duration,
   });
 
-  tl.from(object3d.material, {
-    opacity: 0,
-    duration: 0.5,
-  }, '<');
+  tl.add(addFadeIn(object3d, {
+    duration,
+  }), '<')
 
   return tl;
 }
@@ -1400,22 +1412,25 @@ function addExplosionAnimation(objectGroup, {
     {
       x: 0,
       y: 0,
-    }, '<')
+    }, 0)
   tl.from(objectGroup.children.map(x => x.scale),
     {
       x: 0.001,
       y: 0.001,
-    }, '<')
+    }, 0)
   tl.from(objectGroup.children.map(x => x.rotation),
     {
       z: 0,
-    }, '<')
+    }, 0)
   return tl
 }
 
-function addCollapseAnimation(objectGroup) {
+function addCollapseAnimation(objectGroup, {
+  duration = 0.5,
+} = {}) {
   return addExplosionAnimation(objectGroup, {
     ease: 'expo.in',
+    duration,
   }).reverse()
 }
 
@@ -1499,7 +1514,7 @@ async function loadSVG(url, {
         // called when loading is in progresses
         function (xhr) {
 
-          console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+          // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
 
         },
         // called when loading has errors
@@ -1513,6 +1528,36 @@ async function loadSVG(url, {
   );
 }
 
+function addTextFlyInAnimation(textMesh, {
+  duration = 0.5,
+} = {}) {
+
+  const tl = gsap.timeline()
+
+  // Animation
+  textMesh.children.forEach((letter, i) => {
+    const vals = {
+      position: -textMesh.size * 2,
+      rotation: -Math.PI / 2,
+    };
+    tl.to(vals, duration, {
+      position: 0,
+      rotation: 0,
+
+      ease: "back.out(1)",  // https://greensock.com/docs/v3/Eases
+      onUpdate: () => {
+        letter.position.y = vals.position;
+        letter.position.z = vals.position * 2;
+        letter.rotation.x = vals.rotation;
+      },
+    }, `-=${duration - 0.03}`)
+
+    tl.add(addFadeIn(letter, { duration }), '<')
+  })
+
+  return tl
+}
+
 
 
 ///////////////////////////////////////////////////////////
@@ -1521,8 +1566,63 @@ async function loadSVG(url, {
 
 (async () => {
 
-  const TRI_X = -3
+  const TRI_X = -2.5
   const TRI_Y = 1
+
+
+  async function createIconParticles() {
+    const explosionGroup = new THREE.Group();
+
+
+    if (1) { // LOAD ICONS
+
+      const icons = await Promise.all(icon_files.map(file => loadSVG('/icons/' + file, {
+        color: randomInt(0, 1) == 0 ? pallete[1] : pallete[2],
+      })))
+      icons.forEach(mesh => {
+        mesh.scale.multiplyScalar(0.3)
+        explosionGroup.add(mesh)
+      })
+
+    } else { // Triangles and triangle outlines
+
+      for (var i = 0; i < 100; i++) {
+        let mesh
+
+        const randomParticleType = randomInt(0, 1);
+        if (randomParticleType == 0) {
+          mesh = createTriangleOutline({
+            color: pallete[2],
+          })
+        } else {
+          mesh = createTriangle({
+            color: pallete[1],
+          })
+        }
+        mesh.scale.set(0.05, 0.05, 0.05)
+        explosionGroup.add(mesh)
+      }
+    }
+
+    for (var i = 0; i < explosionGroup.children.length; i++) {
+
+      const mesh = explosionGroup.children[i]
+      {
+        const radiusMin = 1
+        const radiusMax = 6
+
+        const r = radiusMin + (radiusMax - radiusMin) * Math.random()
+        const theta = Math.random() * 2 * Math.PI
+        const x = r * Math.cos(theta)
+        const y = r * Math.sin(theta)
+        mesh.position.set(x, y, 0);
+        mesh.scale.multiplyScalar(Math.random() * 0.5 + 0.5)
+      }
+      mesh.rotation.z = Math.random() * Math.PI * 4
+    }
+
+    return explosionGroup
+  }
 
 
   {
@@ -1553,12 +1653,18 @@ async function loadSVG(url, {
     }))
 
 
-    const slash = new TextMesh({ text: '/' })
-    slash.position.set(0.1, 2, 1)
+    const slash = new TextMesh({
+      text: '/',
+      color: pallete[3],
+    })
+    slash.position.set(0.1, 1.5, 1)
     codeSnippetGroup.add(slash);
     globalTimeline.add(flyIn(slash, {
       dx: -10
     }), '-=0.3')
+
+    globalTimeline.add(cameraMoveTo({ x: 0, y: 2, z: 6 }), '-=0.5')
+
 
     globalTimeline.add(jumpTo(slash, {
       x: 0.1,
@@ -1570,7 +1676,7 @@ async function loadSVG(url, {
     // s2.scale.set(4,4,4)
 
     globalTimeline.add(addShake2D(root), '-=0.4')
-
+    globalTimeline.add(cameraMoveTo({ x: 0, y: 0, z: 10 }), '-=0.5')
 
 
     // scene.add(new THREE.BoxHelper(codeSnippetGroup, 0xffff00));
@@ -1583,57 +1689,12 @@ async function loadSVG(url, {
 
 
     // EXPLOSION
-    const explosionGroup = new THREE.Group();
+
+
+    const explosionGroup = await createIconParticles()
     root.add(explosionGroup)
 
-
-    if (1) { // LOAD ICONS
-      const icons = await Promise.all(icon_files.map(file => loadSVG('/icons/' + file, {
-        color: randomInt(0, 1) == 0 ? pallete[1] : pallete[2],
-      })))
-      icons.forEach(mesh => {
-        mesh.scale.multiplyScalar(0.3)
-        explosionGroup.add(mesh)
-      })
-
-    } else { // Triangles and triangle outlines
-
-      for (var i = 0; i < 100; i++) {
-        let mesh
-
-        const randomParticleType = randomInt(0, 1);
-        if (randomParticleType == 0) {
-          mesh = createTriangleOutline({
-            color: pallete[2],
-          })
-        } else {
-          mesh = createTriangle({
-            color: pallete[1],
-          })
-        }
-        mesh.scale.set(0.05, 0.05, 0.05)
-        explosionGroup.add(mesh)
-      }
-    }
-
     {
-      for (var i = 0; i < explosionGroup.children.length; i++) {
-
-        const mesh = explosionGroup.children[i]
-        {
-          const radiusMin = 1
-          const radiusMax = 6
-
-          const r = radiusMin + (radiusMax - radiusMin) * Math.random()
-          const theta = Math.random() * 2 * Math.PI
-          const x = r * Math.cos(theta)
-          const y = r * Math.sin(theta)
-          mesh.position.set(x, y, 1);
-          mesh.scale.multiplyScalar(Math.random() * 0.5 + 0.5)
-        }
-        mesh.rotation.z = Math.random() * Math.PI * 4
-      }
-
       globalTimeline.add(addExplosionAnimation(explosionGroup, {
         duration: 3,
       }), '<')
@@ -1643,10 +1704,10 @@ async function loadSVG(url, {
       ease: 'power2.in',
     }).reverse())
 
-    globalTimeline.add(flyIn(explosionGroup, {
-      ease: 'power2.in',
-      deltaRotation: 0,
-    }).reverse(), '<')
+    // globalTimeline.add(flyIn(explosionGroup, {
+    //   ease: 'power2.in',
+    //   deltaRotation: 0,
+    // }).reverse(), '<')
 
     globalTimeline.add(addCollapseAnimation(explosionGroup), '<')
 
@@ -1682,9 +1743,9 @@ async function loadSVG(url, {
   triangles.position.set(TRI_X, TRI_Y, -0.1)
   root.add(triangles)
 
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 6; i++) {
     const tri = createTriangle({
-      opacity: 0.3,
+      opacity: 0.15,
       color: pallete[1],
     })
     tri.position.x += (Math.random() - 0.5) * 0.5
@@ -1708,11 +1769,11 @@ async function loadSVG(url, {
     // material,
   });
   textMesh.position.z += 0.1
-  // textMesh.position.y -= 0.1
+  textMesh.position.y += 0.25
   triangles.add(textMesh)
   // scene.add(textMesh);
 
-  globalTimeline.set({}, {}, '-=1.3')
+  globalTimeline.set({}, {}, '-=0.25')
 
   globalTimeline.fromTo(triangles, { visible: false }, { visible: true }, '<')
 
@@ -1724,95 +1785,96 @@ async function loadSVG(url, {
     ease: 'elastic.out(1, 0.2)',
   }), '<')
 
-  // globalTimeline.add(addFadeIn(triangles, { duration: 1.0 }), '<')
 
 
 
+  
 
 
+  if (1) {
+    let bigTriangles = new THREE.Group()
+    bigTriangles.position.set(TRI_X, TRI_Y, -0.1)
+    root.add(bigTriangles)
+    for (let i = 0; i < 6; i++) {
+      const tri = createTriangle({
+        opacity: 0.15,
+        color: pallete[1],
+      })
+      tri.position.z = 0.1 * i + 1
 
-  let bigTriangles = new THREE.Group()
-  bigTriangles.position.set(TRI_X, TRI_Y, -0.1)
-  root.add(bigTriangles)
-  for (let i = 0; i < 4; i++) {
-    const tri = createTriangle({
-      opacity: 0.3,
-      color: pallete[1],
-    })
-    tri.position.z = 0.01 * i + 0.5
+      tri.scale.x = i * 3 + 7
+      tri.scale.y = i * 3 + 7
+      tri.scale.y *= -1
 
-    tri.scale.x = i * 4 + 7
-    tri.scale.y = i * 4 + 7
-    tri.scale.y *= -1
+      bigTriangles.add(tri)
+    }
 
-    bigTriangles.add(tri)
+    globalTimeline.fromTo(bigTriangles, { visible: false }, { visible: true }, '<')
+
+    globalTimeline.add(gsap.from(bigTriangles.scale, {
+      x: 0.01,
+      y: 0.01,
+      z: 0.01,
+      duration: 1.0,
+    }), '<')
+
+    globalTimeline.to(bigTriangles.children.map(x => x.material), {
+      opacity: 0,
+      duration: 1.0,
+      visible: false,
+    }, '<')
+
+    {
+      const explosionGroup2 = await createIconParticles()
+  explosionGroup2.position.z = -1
+  setOpacity(explosionGroup2, 0.3)
+  explosionGroup2.scale.set(2, 2, 2)
+  root.add(explosionGroup2)
+  globalTimeline.add(addExplosionAnimation(explosionGroup2), '<')
+
+  const tlIconMoving = gsap.timeline()
+  explosionGroup2.children.forEach(x => {
+    tlIconMoving.to(x.position, {
+      x: Math.random() * 10 - 5,
+      y: Math.random() * 10 - 5,
+      duration: 10,
+      ease: 'none',
+    }, 0)
+  })
+  globalTimeline.add(tlIconMoving, '<0.3')
+    }
+
+    // globalTimeline.to(root.position,
+    //   {
+    //     x: 1,
+    //     y: -1,
+    //     ease: 'rough({ strength: 10, points: 50 })',
+    //     duration: 2.0,
+    //     yoyo: true,
+    //     repeat: -1,
+    //   }, '-=0.7')
+
+    // globalTimeline.add(cameraMoveTo(0, 0, 1), '<0.1')
+
+    globalTimeline.add(addShake2D(root), '<-0.3')
+
+    globalTimeline.set(bigTriangles, { visible: false }, '>')
   }
 
-  // globalTimeline.add(addFadeIn(bigTriangles, { duration: 1.0 }), '<')
 
-  // bigTriangles.visible = false
-  // globalTimeline.set(bigTriangles, {visible: false}, '<')
-  globalTimeline.fromTo(bigTriangles, { visible: false }, { visible: true }, '<')
 
-  globalTimeline.add(gsap.from(bigTriangles.scale, {
-    x: 0.01,
-    y: 0.01,
-    z: 0.01,
-    duration: 1.0,
-  }), '<')
-
-  globalTimeline.to(bigTriangles.children.map(x => x.material), {
-    opacity: 0,
-    duration: 1.0,
-  }, '<')
-
-  // globalTimeline.to(root.position,
-  //   {
-  //     x: 1,
-  //     y: -1,
-  //     ease: 'rough({ strength: 10, points: 50 })',
-  //     duration: 2.0,
-  //     yoyo: true,
-  //     repeat: -1,
-  //   }, '-=0.7')
-
-  globalTimeline.add(addShake2D(root), '<0.1')
 
 
 
   {
-    const mesh = new TextMesh({
-      text: 'CODING IN 3 MINUTES',
-      color: pallete[4],
-      font: 'en',
-      size: 0.5,
-      // material,
-    });
-    mesh.position.set(0, -1, 0)
-    scene.add(mesh);
-  }
-
-  {
-    const mesh = new TextMesh({
-      text: '奇乐编程学院',
-      color: pallete[4],
-      font: 'zh',
-      size: 0.6,
-      // material,
-    });
-    mesh.position.set(0, -3, 0)
-    scene.add(mesh);
-  }
-
-  {
-    const material = new THREE.MeshPhysicalMaterial({
-      clearcoat: 0.1,
-      clearcoatRoughness: 0.5,
-      metalness: 0.1,
-      roughness: 0.9,
-      color: 0x00ff00,
-      normalScale: new THREE.Vector2(0.15, 0.15),
-    });
+    // const material = new THREE.MeshPhysicalMaterial({
+    //   clearcoat: 0.1,
+    //   clearcoatRoughness: 0.5,
+    //   metalness: 0.1,
+    //   roughness: 0.9,
+    //   color: 0x00ff00,
+    //   normalScale: new THREE.Vector2(0.15, 0.15),
+    // });
 
     const textMesh = new TextMesh({
       text: '三分钟',
@@ -1821,15 +1883,47 @@ async function loadSVG(url, {
       // material,
     });
 
-    // setInterval(() => {
-    //   textMesh.text = generateRandomString(10);
-    // }, 10);
-
-    textMesh.position.set(3.4, 0, 0);
+    textMesh.position.set(2.5, TRI_Y, 0);
     // text.position.x -= text.basePosition * 0.5;
     scene.add(textMesh);
-    globalTimeline.add(addJumpIn(textMesh));
+    globalTimeline.add(addJumpIn(textMesh), '>0.5');
   }
+
+
+  {
+    const mesh = new TextMesh({
+      text: 'CODING IN 3 MINUTES',
+      color: pallete[3],
+      font: 'en',
+      size: 0.4,
+      // material,
+    });
+    mesh.position.set(0, -1, 0.5)
+    scene.add(mesh);
+
+    globalTimeline.add(addTextFlyInAnimation(mesh), '>-0.5')
+  }
+
+  {
+    const mesh = new TextMesh({
+      text: '奇乐编程学院',
+      color: pallete[4],
+      font: 'zh',
+      size: 0.6,
+      letterSpacing: 0.5,
+      // material,
+    });
+    mesh.position.set(0, -3, 0)
+    scene.add(mesh);
+
+    globalTimeline.add(flyIn(mesh, {
+      deltaRotation: 0,
+      ease: 'back.out',
+      duration: 1,
+    }), '>')
+  }
+
+
 
 
   if (0) {
