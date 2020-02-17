@@ -1436,7 +1436,6 @@ if (1) {
     const codeSnippetGroup = new THREE.Group()
     root.add(codeSnippetGroup)
 
-
     const lessThanSign = new TextMesh({ text: '<' })
     codeSnippetGroup.add(lessThanSign)
     lessThanSign.position.set(-D, 0, 1.01)
@@ -1456,7 +1455,7 @@ if (1) {
 
     const slash = new TextMesh({ text: '/' })
     slash.position.set(0.1, 2, 1)
-    root.add(slash);
+    codeSnippetGroup.add(slash);
     globalTimeline.add(flyIn(slash, {
       dx: -10
     }), '-=0.3')
@@ -1526,16 +1525,19 @@ if (1) {
         mesh.rotation.z = Math.random() * Math.PI * 4
       }
 
-
-
       globalTimeline.add(addExplosionAnimation(explosionGroup, {
         duration: 3,
       }), '<')
     }
 
-    globalTimeline.add(flyIn(root, {
+    globalTimeline.add(flyIn(codeSnippetGroup, {
       ease: 'power2.in',
     }).reverse())
+
+    globalTimeline.add(flyIn(explosionGroup, {
+      ease: 'power2.in',
+      deltaRotation: 0,
+    }).reverse(), '<')
 
     globalTimeline.add(addCollapseAnimation(explosionGroup), '<')
 
