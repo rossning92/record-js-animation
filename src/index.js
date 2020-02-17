@@ -31,8 +31,9 @@ import icon_files from './icons.json'
 gsap.ticker.remove(gsap.updateRoot);
 
 
-const WIDTH = 1920;
-const HEIGHT = 1080;
+const RENDER_TARGET_SCALE = 1
+const WIDTH = 1920 * RENDER_TARGET_SCALE;
+const HEIGHT = 1080 * RENDER_TARGET_SCALE;
 const AA_METHOD = 'msaa';
 
 var globalTimeline = gsap.timeline()
@@ -68,6 +69,7 @@ let pallete = [
   '#f7fff7',
 ];
 
+var glitchPass;
 
 let options = {
   /* Recording options */
@@ -212,7 +214,11 @@ function setupScene(width, height) {
 
 
   if (0) { // Bloom pass
-    let bloomPass = new UnrealBloomPass(new THREE.Vector2(WIDTH, HEIGHT), 1.5, 0.4, 0.85);
+    let bloomPass = new UnrealBloomPass(new THREE.Vector2(WIDTH, HEIGHT),
+      0.5, // Strength
+      0.4,  // radius 
+      0.85 // threshold
+    );
     composer.addPass(bloomPass);
   }
 
@@ -224,16 +230,8 @@ function setupScene(width, height) {
   }
 
   if (0) {
-    const glitchPass = new GlitchPass();
+    glitchPass = new GlitchPass();
     composer.addPass(glitchPass);
-
-    setTimeout(() => {
-      glitchPass.factor = 1;
-    }, 1000);
-
-    setTimeout(() => {
-      glitchPass.factor = 0;
-    }, 1200);
   }
 
 
@@ -1528,6 +1526,17 @@ async function loadSVG(url, {
   );
 }
 
+function addGlitch({ duration = 0.2 } = {}) {
+  if (glitchPass != null) {
+    const tl = gsap.timeline()
+    tl.set(glitchPass, {factor: 1})
+    tl.set(glitchPass, {factor: 0}, `+=${duration}`)
+    return tl
+  } else {
+    return gsap.timeline()
+  }
+}
+
 function addTextFlyInAnimation(textMesh, {
   duration = 0.5,
 } = {}) {
@@ -1909,6 +1918,8 @@ function addTextFlyInAnimation(textMesh, {
       ease: 'back.out',
       duration: 1,
     }), '>')
+
+    globalTimeline.add(addGlitch(), '>')
   }
 
 
