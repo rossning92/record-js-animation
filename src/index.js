@@ -35,6 +35,7 @@ const RENDER_TARGET_SCALE = 1
 const WIDTH = 1920 * RENDER_TARGET_SCALE;
 const HEIGHT = 1080 * RENDER_TARGET_SCALE;
 const AA_METHOD = 'msaa';
+const ENABLE_MOTION_BLUR = false
 
 var globalTimeline = gsap.timeline()
 let stats;
@@ -74,14 +75,14 @@ var glitchPass;
 let options = {
   /* Recording options */
   format: 'webm',
-  framerate: '60FPS',
+  framerate: '25FPS',
   start: function () { startRecording(); },
   stop: function () { stopRecording(); }
 }
 
 var gui = new dat.gui.GUI();
 gui.add(options, 'format', ['gif', 'webm-mediarecorder', 'webm', 'png']);
-gui.add(options, 'framerate', ['10FPS', '30FPS', '60FPS', '120FPS']);
+gui.add(options, 'framerate', ['10FPS', '25FPS', '30FPS', '60FPS', '120FPS']);
 gui.add(options, 'start');
 gui.add(options, 'stop');
 
@@ -196,10 +197,10 @@ function setupScene(width, height) {
   composer.addPass(renderScene);
 
 
-  if (0) { // Motion blur pass
+  if (ENABLE_MOTION_BLUR) { // Motion blur pass
     let options = {
-      samples: 15,
-      expandGeometry: 0,
+      samples: 50,
+      expandGeometry: 1,
       interpolateGeometry: 1,
       smearIntensity: 1,
       blurTransparent: true,
@@ -280,7 +281,7 @@ function animate(time) {
   if (capturer) capturer.capture(renderer.domElement);
 }
 
-function cameraMoveTo({
+function moveCameraTo({
   x = 0,
   y = 0,
   z = 10,
@@ -1337,7 +1338,7 @@ function addShake2D(object3d,
   } = {}) {
   function R(max, min) { return Math.random() * (max - min) + min };
 
-  var tl = new TimelineLite();
+  var tl = new gsap.timeline({ defaults: { ease: 'none' } });
   tl.set(object3d, { x: "+=0" }); // this creates a full _gsTransform on object3d
   var transforms = object3d._gsTransform;
 
@@ -1529,8 +1530,8 @@ async function loadSVG(url, {
 function addGlitch({ duration = 0.2 } = {}) {
   if (glitchPass != null) {
     const tl = gsap.timeline()
-    tl.set(glitchPass, {factor: 1})
-    tl.set(glitchPass, {factor: 0}, `+=${duration}`)
+    tl.set(glitchPass, { factor: 1 })
+    tl.set(glitchPass, { factor: 0 }, `+=${duration}`)
     return tl
   } else {
     return gsap.timeline()
@@ -1672,7 +1673,7 @@ function addTextFlyInAnimation(textMesh, {
       dx: -10
     }), '-=0.3')
 
-    globalTimeline.add(cameraMoveTo({ x: 0, y: 2, z: 6 }), '-=0.5')
+    globalTimeline.add(moveCameraTo({ x: 0, y: 2, z: 6 }), '-=0.5')
 
 
     globalTimeline.add(jumpTo(slash, {
@@ -1685,16 +1686,10 @@ function addTextFlyInAnimation(textMesh, {
     // s2.scale.set(4,4,4)
 
     globalTimeline.add(addShake2D(root), '-=0.4')
-    globalTimeline.add(cameraMoveTo({ x: 0, y: 0, z: 10 }), '-=0.5')
+    globalTimeline.add(moveCameraTo({ x: 0, y: 0, z: 10 }), '-=0.5')
 
 
-    // scene.add(new THREE.BoxHelper(codeSnippetGroup, 0xffff00));
-
-
-    // addAnimation(t2);
-    // // addAnimation(t3);
-    // globalTimeline.add(addFlyIn(t2));
-    // globalTimeline.add(addJumpIn(t3));
+    // return
 
 
     // EXPLOSION
