@@ -1788,7 +1788,7 @@ function addTextFlyInAnimation(textMesh, {
 
 
 
-  
+
 
 
   if (1) {
@@ -1826,35 +1826,23 @@ function addTextFlyInAnimation(textMesh, {
 
     {
       const explosionGroup2 = await createIconParticles()
-  explosionGroup2.position.z = -1
-  setOpacity(explosionGroup2, 0.3)
-  explosionGroup2.scale.set(2, 2, 2)
-  root.add(explosionGroup2)
-  globalTimeline.add(addExplosionAnimation(explosionGroup2), '<')
+      explosionGroup2.position.z = -1
+      setOpacity(explosionGroup2, 0.3)
+      explosionGroup2.scale.set(2, 2, 2)
+      root.add(explosionGroup2)
+      globalTimeline.add(addExplosionAnimation(explosionGroup2), '<')
 
-  const tlIconMoving = gsap.timeline()
-  explosionGroup2.children.forEach(x => {
-    tlIconMoving.to(x.position, {
-      x: Math.random() * 10 - 5,
-      y: Math.random() * 10 - 5,
-      duration: 10,
-      ease: 'none',
-    }, 0)
-  })
-  globalTimeline.add(tlIconMoving, '<0.3')
+      const tlIconMoving = gsap.timeline()
+      explosionGroup2.children.forEach(x => {
+        tlIconMoving.to(x.position, {
+          x: Math.random() * 10 - 5,
+          y: Math.random() * 10 - 5,
+          duration: 10,
+          ease: 'none',
+        }, 0)
+      })
+      globalTimeline.add(tlIconMoving, '<0.3')
     }
-
-    // globalTimeline.to(root.position,
-    //   {
-    //     x: 1,
-    //     y: -1,
-    //     ease: 'rough({ strength: 10, points: 50 })',
-    //     duration: 2.0,
-    //     yoyo: true,
-    //     repeat: -1,
-    //   }, '-=0.7')
-
-    // globalTimeline.add(cameraMoveTo(0, 0, 1), '<0.1')
 
     globalTimeline.add(addShake2D(root), '<-0.3')
 
