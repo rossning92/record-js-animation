@@ -73,7 +73,7 @@ var glitchPass;
 let options = {
   /* Recording options */
   format: "png",
-  framerate: "120FPS",
+  framerate: "25FPS",
   start: function() {
     startRecording();
   },
@@ -105,6 +105,7 @@ function initRecording() {
 
 function startRecording() {
   initRecording();
+  globalTimeline.seek(0);
   capturer.start();
 }
 
@@ -116,8 +117,6 @@ function stopRecording() {
 }
 
 function render() {
-  // lineGenerator.update();
-  // renderer.render(scene, camera);
   composer.render();
 }
 
@@ -253,6 +252,7 @@ function animate(time) {
     start = time;
   }
   let timestamp = time - start;
+  console.log(time);
 
   // console.log(time / 1000);
   gsap.updateRoot(timestamp / 1000);
