@@ -1,4 +1,4 @@
-import yo, { THREE, gsap } from "../utils";
+import yo, { THREE, gsap } from "../yo";
 import icon_files from "../icons.json";
 
 ///////////////////////////////////////////////////////////
