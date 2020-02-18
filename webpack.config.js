@@ -29,10 +29,6 @@ fs.readdirSync(__dirname + "/src/pages").forEach(file => {
 
 module.exports = {
   entry: entries,
-  output: {
-    path: __dirname + "/dist",
-    filename: "index_bundle.js"
-  },
   plugins: plugins,
   module: {
     rules: [

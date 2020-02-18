@@ -28,7 +28,7 @@ const WIDTH = 1920 * RENDER_TARGET_SCALE;
 const HEIGHT = 1080 * RENDER_TARGET_SCALE;
 const AA_METHOD = "msaa";
 const ENABLE_MOTION_BLUR_PASS = false;
-const MOTION_BLUR_SAMPLES = 32;
+const MOTION_BLUR_SAMPLES = 0;
 
 var captureStatus;
 var globalTimeline = gsap.timeline({ onComplete: stopCapture });
@@ -1603,7 +1603,13 @@ export default {
   randomInt,
   scene,
   setOpacity,
-  TextMesh
+  TextMesh,
+  addLights,
+  addFadeOut,
+  createObject,
+  addWipeAnimation,
+  canvasDrawTriangle,
+  createRect,
 };
 
 export { THREE, gsap };
