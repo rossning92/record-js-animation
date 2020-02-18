@@ -6,9 +6,8 @@ import TextMesh from "./objects/TextMesh";
 import Stars from "./objects/Stars";
 
 import gsap, { TimelineLite } from "gsap";
-import { RoughEase } from "gsap/EasePack";
-
-gsap.registerPlugin(RoughEase);
+// import { RoughEase } from "gsap/EasePack";
+// gsap.registerPlugin(RoughEase);
 
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
