@@ -74,8 +74,8 @@ var glitchPass;
 
 let options = {
   /* Recording options */
-  format: 'webm',
-  framerate: '25FPS',
+  format: 'png',
+  framerate: '120FPS',
   start: function () { startRecording(); },
   stop: function () { stopRecording(); }
 }
@@ -1568,13 +1568,45 @@ function addTextFlyInAnimation(textMesh, {
   return tl
 }
 
+function newScene(initFunction) {
+  (async () => {
+    await initFunction();
 
+    { // Create timeline GUI
+
+      options.timeline = 0;
+      gui.add(options, 'timeline', 0, globalTimeline.totalDuration()).onChange((val) => {
+        globalTimeline.seek(val);
+      })
+
+      Object.keys(globalTimeline.labels).forEach(key => {
+        console.log(`${key} ${globalTimeline.labels[key]}`)
+      })
+
+
+
+      const folder = gui.addFolder('Timeline Labels')
+      var labels = new Object();
+      Object.keys(globalTimeline.labels).forEach(key => {
+
+        const label = key;
+        const time = globalTimeline.labels[key];
+
+        console.log(this);
+        labels[label] = () => {
+          globalTimeline.seek(time);
+        };
+        folder.add(labels, label);
+      })
+    }
+  })()
+}
 
 ///////////////////////////////////////////////////////////
 // Main animation
 
 
-(async () => {
+newScene(async () => {
 
   const TRI_X = -2.5
   const TRI_Y = 1
@@ -1834,7 +1866,7 @@ function addTextFlyInAnimation(textMesh, {
       setOpacity(explosionGroup2, 0.3)
       explosionGroup2.scale.set(2, 2, 2)
       root.add(explosionGroup2)
-      globalTimeline.add(addExplosionAnimation(explosionGroup2), '<')
+      globalTimeline.add(addFadeIn(explosionGroup2), '<')
 
       const tlIconMoving = gsap.timeline()
       explosionGroup2.children.forEach(x => {
@@ -1917,50 +1949,7 @@ function addTextFlyInAnimation(textMesh, {
     globalTimeline.add(addGlitch(), '>')
   }
 
-
-
-
-  if (0) {
-    const stars = new Stars()
-    stars.position.z = -100;
-    scene.add(stars);
-  }
-
-
-
-  { // Timeline GUI
-
-    options.timeline = 0;
-    gui.add(options, 'timeline', 0, globalTimeline.totalDuration()).onChange((val) => {
-      globalTimeline.seek(val);
-    })
-
-    Object.keys(globalTimeline.labels).forEach(key => {
-      console.log(`${key} ${globalTimeline.labels[key]}`)
-    })
-
-
-
-    const folder = gui.addFolder('Timeline Labels')
-    var labels = new Object();
-    Object.keys(globalTimeline.labels).forEach(key => {
-
-      const label = key;
-      const time = globalTimeline.labels[key];
-
-      console.log(this);
-      labels[label] = () => {
-        globalTimeline.seek(time);
-      };
-      folder.add(labels, label);
-    })
-  }
-
-
-
-
-
-})();
+})
 
 
 
