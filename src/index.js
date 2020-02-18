@@ -33,9 +33,10 @@ const RENDER_TARGET_SCALE = 1;
 const WIDTH = 1920 * RENDER_TARGET_SCALE;
 const HEIGHT = 1080 * RENDER_TARGET_SCALE;
 const AA_METHOD = "msaa";
-const ENABLE_MOTION_BLUR = false;
+const ENABLE_MOTION_BLUR_PASS = false;
+const MOTION_BLUR_SAMPLES = 0;
 
-var globalTimeline = gsap.timeline();
+const globalTimeline = gsap.timeline({ onComplete: stopRecording });
 let stats;
 let capturer = null;
 let renderer;
@@ -93,7 +94,7 @@ function initRecording() {
     verbose: true,
     display: false,
     framerate: parseInt(options.framerate),
-    motionBlurFrames: 0,
+    motionBlurFrames: MOTION_BLUR_SAMPLES,
     quality: 100,
     format: options.format,
     workersPath: "dist/src/",
@@ -105,8 +106,8 @@ function initRecording() {
 
 function startRecording() {
   initRecording();
-  globalTimeline.seek(0);
   capturer.start();
+  globalTimeline.seek(0);
 }
 
 function stopRecording() {
@@ -186,7 +187,7 @@ function setupScene(width, height) {
   composer.setSize(WIDTH, HEIGHT);
   composer.addPass(renderScene);
 
-  if (ENABLE_MOTION_BLUR) {
+  if (ENABLE_MOTION_BLUR_PASS) {
     // Motion blur pass
     let options = {
       samples: 50,
@@ -252,9 +253,7 @@ function animate(time) {
     start = time;
   }
   let timestamp = time - start;
-  console.log(time);
 
-  // console.log(time / 1000);
   gsap.updateRoot(timestamp / 1000);
   TWEEN.update(timestamp);
 

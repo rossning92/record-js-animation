@@ -1,12 +1,25 @@
-import { Object3D, ShapeGeometry, MeshBasicMaterial, Mesh, FontLoader, ShapeBufferGeometry, Group, Color, DoubleSide, Geometry, Vector3, Vector2, BufferGeometry } from 'three';
+import {
+  Object3D,
+  ShapeGeometry,
+  MeshBasicMaterial,
+  Mesh,
+  FontLoader,
+  ShapeBufferGeometry,
+  Group,
+  Color,
+  DoubleSide,
+  Geometry,
+  Vector3,
+  Vector2,
+  BufferGeometry
+} from "three";
 
+import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader";
 
-import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
-
-import fontFile from '../fonts/sourceHanBold3000';
-import gsap from 'gsap';
-import { MeshLine, MeshLineMaterial } from 'three.meshline';
-import * as THREE from 'three'
+import fontFile from "../fonts/sourceHanBold3000";
+import gsap from "gsap";
+import { MeshLine, MeshLineMaterial } from "three.meshline";
+import * as THREE from "three";
 // import font2 from '../utils/cn.json'
 
 const fontLoader = new FontLoader();
@@ -25,37 +38,33 @@ function createLitMaterial() {
 
 export default class TextMesh extends Object3D {
   constructor({
-    text = '',
+    text = "",
     size = 1.0,
     letterSpacing = 0.05,
-    color = '#ffffff',
+    color = "#ffffff",
     opacity = 1,
     wireframe = false,
-    font = 'en',
-    material = null,
+    font = "en",
+    material = null
   } = {}) {
-    super()
+    super();
 
-    this.basePosition = 0
-    this.size = size
-    this.color = color
-    this.letterSpacing = letterSpacing
+    this.basePosition = 0;
+    this.size = size;
+    this.color = color;
+    this.letterSpacing = letterSpacing;
 
-    if (font == 'zh') {
-      this.font = fontLoader.parse(require('../fonts/sourceHanBold3000'))
+    if (font == "zh") {
+      this.font = fontLoader.parse(require("../fonts/sourceHanBold3000"));
     } else {
-      this.font = fontLoader.parse(require('../fonts/muliBold').default)
+      this.font = fontLoader.parse(require("../fonts/muliBold").default);
     }
 
     if (material) {
-      this.material = material
+      this.material = material;
     } else {
-      this.material = null
+      this.material = null;
     }
-
-
-
-
 
     this.text = text;
 
@@ -96,8 +105,6 @@ export default class TextMesh extends Object3D {
           points3D.forEach(p => geometry.vertices.push(p));
           geometry.translate(xMid, 0, 0);
 
-
-
           let line = new MeshLine();
           line.setGeometry(geometry);
 
@@ -116,26 +123,24 @@ export default class TextMesh extends Object3D {
             opacity,
             transparent: true,
             depthWrite: false,
-            color: '#000000',
+            color: "#000000",
             // TODO: don't hard code value here.
             resolution: new Vector2(1920, 1080),
-            sizeAttenuation: !false, // Line width constant regardless distance
+            sizeAttenuation: !false // Line width constant regardless distance
           });
-
 
           // new BufferGeometry().fromGeometry(line.geometry);
           let mesh = new Mesh(line.geometry, material); // this syntax could definitely be improved!
           this.add(mesh);
-
 
           // Text outline animation
           if (1) {
             const vals = { svg: 0 };
             gsap.to(vals, 5, {
               svg: 1,
-              onUpdate: (x) => {
+              onUpdate: x => {
                 material.uniforms.dashOffset.value = vals.svg;
-              },
+              }
             });
           }
 
@@ -151,65 +156,64 @@ export default class TextMesh extends Object3D {
       }
       this.add(strokeText);
     }
-
   }
 
   set text(text) {
     this.children.length = 0;
 
-
-
     if (1) {
-      let totalWidth = 0
-      const letters = [...text]
-      const letterSize = []
-      let minY = 999, maxY = -999
-      letters.forEach((letter) => {
-        if (letter === ' ') {
+      let totalWidth = 0;
+      const letters = [...text];
+      const letterSize = [];
+      let minY = 999,
+        maxY = -999;
+      letters.forEach(letter => {
+        if (letter === " ") {
           totalWidth += this.size * 0.5;
         } else {
           const geom = new THREE.ShapeBufferGeometry(
-            this.font.generateShapes(letter, this.size, 1),
+            this.font.generateShapes(letter, this.size, 1)
           );
           geom.computeBoundingBox();
           const mat = new MeshBasicMaterial({
-            color: this.color,
+            color: this.color
             // wireframe,
           });
           const mesh = new Mesh(geom, mat);
 
           // mesh.position.x = basePosition;
-          letterSize.push(totalWidth)
+          letterSize.push(totalWidth);
           totalWidth += geom.boundingBox.max.x + this.letterSpacing;
 
-          minY = Math.min(minY, geom.boundingBox.min.y)
-          maxY = Math.max(maxY, geom.boundingBox.max.y)
+          minY = Math.min(minY, geom.boundingBox.min.y);
+          maxY = Math.max(maxY, geom.boundingBox.max.y);
           // minX
 
           this.add(mesh);
         }
-      })
+      });
 
       this.children.forEach((letter, i) => {
-        letter.position.set(-0.5 * totalWidth + letterSize[i], -0.5 * (maxY - minY), 0)
-
-      })
-    }
-
-
-    else {
+        letter.position.set(
+          -0.5 * totalWidth + letterSize[i],
+          -0.5 * (maxY - minY),
+          0
+        );
+      });
+    } else {
       // Generate text shapes
       const shapes = this.font.generateShapes(text, this.size);
 
       // Compute xMid
       const geometry = new ShapeBufferGeometry(shapes);
       geometry.computeBoundingBox();
-      const xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
-      const yMid = - 0.5 * (geometry.boundingBox.max.y - geometry.boundingBox.min.y);
+      const xMid =
+        -0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
+      const yMid =
+        -0.5 * (geometry.boundingBox.max.y - geometry.boundingBox.min.y);
 
       // Text shapes
       shapes.forEach((shape, i) => {
-
         let geometry;
 
         if (1) {
@@ -236,8 +240,8 @@ export default class TextMesh extends Object3D {
         // Separate material for animation
         const material = new MeshBasicMaterial({
           color: this.color,
-          transparent: true,
-        })
+          transparent: true
+        });
 
         const mesh = new Mesh(geometry, material);
 
@@ -246,6 +250,5 @@ export default class TextMesh extends Object3D {
         this.add(mesh);
       });
     }
-
   }
 }
