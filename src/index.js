@@ -114,6 +114,7 @@ function stopRecording() {
   if (capturer !== null) {
     capturer.stop();
     capturer.save();
+    capturer = null;
   }
 }
 
@@ -1457,8 +1458,8 @@ async function loadSVG(url, { color = null } = {}) {
         }
 
         const box = getCompoundBoundingBox(group);
-        const boxCenter = box.getCenter();
-        const boxSize = box.getSize();
+        const boxCenter = (box.min + box.max) * 0.5;
+        const boxSize = box.max - box.min;
         const scale = 1.0 / Math.max(boxSize.x, boxSize.y, boxSize.z);
 
         group.scale.multiplyScalar(scale);
@@ -1921,6 +1922,8 @@ newScene(async () => {
 
     globalTimeline.add(addGlitch(), ">");
   }
+
+  // createAnimatedLines()
 });
 
 ///////////////////////////////////////////////////////////
