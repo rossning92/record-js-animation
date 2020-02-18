@@ -36,7 +36,8 @@ const AA_METHOD = "msaa";
 const ENABLE_MOTION_BLUR_PASS = false;
 const MOTION_BLUR_SAMPLES = 0;
 
-const globalTimeline = gsap.timeline({ onComplete: stopRecording });
+var captureStatus;
+const globalTimeline = gsap.timeline({ onComplete: stopCapture });
 let stats;
 let capturer = null;
 let renderer;
@@ -76,10 +77,10 @@ let options = {
   format: "png",
   framerate: "25FPS",
   start: function() {
-    startRecording();
+    startCapture();
   },
   stop: function() {
-    stopRecording();
+    stopCapture();
   }
 };
 
@@ -89,7 +90,7 @@ gui.add(options, "framerate", ["10FPS", "25FPS", "30FPS", "60FPS", "120FPS"]);
 gui.add(options, "start");
 gui.add(options, "stop");
 
-function initRecording() {
+function initCapture() {
   capturer = new CCapture({
     verbose: true,
     display: false,
@@ -104,17 +105,21 @@ function initRecording() {
   });
 }
 
-function startRecording() {
-  initRecording();
+function startCapture() {
+  initCapture();
   capturer.start();
   globalTimeline.seek(0);
+  captureStatus.innerText = "capturing";
 }
 
-function stopRecording() {
+window.startCapture = startCapture;
+
+function stopCapture() {
   if (capturer !== null) {
     capturer.stop();
     capturer.save();
     capturer = null;
+    captureStatus.innerText = "stopped";
   }
 }
 
@@ -715,7 +720,6 @@ function createRingAnimation() {
       defaults: { duration: 1, ease: "power3.out" },
       onUpdate: () => {
         material.uniforms.dashOffset.value = vals.start;
-        // console.log(vals.end - vals.start);
         material.uniforms.dashRatio.value = 1 - (vals.end - vals.start);
       }
     });
@@ -1458,8 +1462,8 @@ async function loadSVG(url, { color = null } = {}) {
         }
 
         const box = getCompoundBoundingBox(group);
-        const boxCenter = (box.min + box.max) * 0.5;
-        const boxSize = box.max - box.min;
+        const boxCenter = box.min.add(box.max).multiplyScalar(0.5);
+        const boxSize = box.max.sub(box.min);
         const scale = 1.0 / Math.max(boxSize.x, boxSize.y, boxSize.z);
 
         group.scale.multiplyScalar(scale);
@@ -1572,6 +1576,13 @@ function newScene(initFunction) {
   })();
 }
 
+{
+  captureStatus = document.createElement("div");
+  captureStatus.id = "captureStatus";
+  captureStatus.innerText = "stopped";
+  document.body.appendChild(captureStatus);
+}
+
 ///////////////////////////////////////////////////////////
 // Main animation
 
@@ -1593,7 +1604,7 @@ newScene(async () => {
         )
       );
       icons.forEach(mesh => {
-        mesh.scale.multiplyScalar(0.3);
+        mesh.scale.multiplyScalar(0.2);
         explosionGroup.add(mesh);
       });
     } else {
@@ -1686,10 +1697,6 @@ newScene(async () => {
       }),
       "+=0.5"
     );
-
-    // let s2 = slash.clone()
-    // scene.add(s2)
-    // s2.scale.set(4,4,4)
 
     globalTimeline.add(addShake2D(root), "-=0.4");
     globalTimeline.add(moveCameraTo({ x: 0, y: 0, z: 10 }), "-=0.5");
