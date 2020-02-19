@@ -5,8 +5,8 @@ import icon_files from "../icons.json";
 // Main animation
 
 yo.newScene(async () => {
-  const TRI_X = -2.5;
-  const TRI_Y = 1;
+  const TRI_X = -5;
+  const TRI_Y = 1.5;
 
   async function createIconParticles() {
     const explosionGroup = new THREE.Group();
@@ -147,7 +147,7 @@ yo.newScene(async () => {
     yo.globalTimeline.add(yo.addCollapseAnimation(explosionGroup), "<");
 
     yo.globalTimeline.add(
-      moveTo(root, {
+      yo.moveTo(root, {
         x: TRI_X,
         y: TRI_Y
       }),
@@ -164,49 +164,56 @@ yo.newScene(async () => {
   let root = new THREE.Group();
   yo.scene.add(root);
 
-  let triangles = new THREE.Group();
-  triangles.position.set(TRI_X, TRI_Y, -0.1);
-  root.add(triangles);
+  let logo = new THREE.Group();
+  logo.position.set(TRI_X, TRI_Y, -0.1);
+  logo.scale.multiplyScalar(1.5);
+  root.add(logo);
 
-  for (let i = 0; i < 6; i++) {
-    const tri = yo.createTriangle({
-      opacity: 0.15,
-      color: yo.pallete[1]
-    });
-    tri.position.x += (Math.random() - 0.5) * 0.5;
-    tri.position.y += (Math.random() - 0.5) * 0.5;
-    tri.position.z = 0.01 * i;
+  if (0) {
+    // Overlapping triangles
+    for (let i = 0; i < 6; i++) {
+      const tri = yo.createTriangle({
+        opacity: 0.12,
+        color: yo.pallete[1]
+      });
+      tri.position.x += (Math.random() - 0.5) * 0.5;
+      tri.position.y += (Math.random() - 0.5) * 0.5;
+      tri.position.z = 0.01 * i;
 
-    tri.scale.y = -1;
-    tri.scale.x *= 2;
-    tri.scale.y *= 2;
+      tri.scale.y *= -1;
+      tri.scale.multiplyScalar(1.8);
 
-    triangles.add(tri);
+      logo.add(tri);
+    }
   }
 
-  const textMesh = new yo.TextMesh({
-    text: "编程",
-    color: yo.pallete[4],
-    font: "zh",
-    size: 1.5
-    // material,
-  });
-  textMesh.position.z += 0.1;
-  textMesh.position.y += 0.25;
-  triangles.add(textMesh);
-  // U.scene.add(textMesh);
+  if (1) {
+    const tri = await yo.loadSVG("/logo.svg", {
+      isCCW: false,
+      color: yo.pallete[1]
+    });
+    yo.setOpacity(tri, 0.6);
+    tri.scale.multiplyScalar(2.0);
+
+    logo.add(tri);
+  }
+
+  // const textMesh = new yo.TextMesh({
+  //   text: "编程",
+  //   color: yo.pallete[4],
+  //   font: "zh",
+  //   size: 1.3
+  //   // material,
+  // });
+  // textMesh.position.z += 0.1;
+  // logo.add(textMesh);
 
   yo.globalTimeline.set({}, {}, "-=0.25");
 
-  yo.globalTimeline.fromTo(
-    triangles,
-    { visible: false },
-    { visible: true },
-    "<"
-  );
+  yo.globalTimeline.fromTo(logo, { visible: false }, { visible: true }, "<");
 
   yo.globalTimeline.add(
-    gsap.from(triangles.scale, {
+    gsap.from(logo.scale, {
       x: 0.01,
       y: 0.01,
       z: 0.01,
@@ -301,13 +308,14 @@ yo.newScene(async () => {
     // });
 
     const textMesh = new yo.TextMesh({
-      text: "三分钟",
+      text: "编程三分钟",
       color: yo.pallete[4],
-      font: "zh"
+      font: "zh",
+      size: 1.5
       // material,
     });
 
-    textMesh.position.set(2.5, TRI_Y, 0);
+    textMesh.position.set(3, TRI_Y + 0.5, 0);
     // text.position.x -= text.basePosition * 0.5;
     yo.scene.add(textMesh);
     yo.globalTimeline.add(yo.addJumpIn(textMesh), ">0.5");
@@ -318,7 +326,7 @@ yo.newScene(async () => {
       text: "CODING IN 3 MINUTES",
       color: yo.pallete[3],
       font: "en",
-      size: 0.4
+      size: 0.6
       // material,
     });
     mesh.position.set(0, -1, 0.5);
@@ -332,11 +340,11 @@ yo.newScene(async () => {
       text: "奇乐编程学院",
       color: yo.pallete[4],
       font: "zh",
-      size: 0.6,
+      size: 0.9,
       letterSpacing: 0.5
       // material,
     });
-    mesh.position.set(0, -3, 0);
+    mesh.position.set(0, -4, 0);
     yo.scene.add(mesh);
 
     yo.globalTimeline.add(

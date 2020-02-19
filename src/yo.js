@@ -1428,7 +1428,7 @@ function getCompoundBoundingBox(object3D) {
   return box;
 }
 
-async function loadSVG(url, { color = null } = {}) {
+async function loadSVG(url, { color = null, isCCW=true } = {}) {
   return new Promise((resolve, reject) => {
     // instantiate a loader
     let loader = new SVGLoader();
@@ -1451,7 +1451,7 @@ async function loadSVG(url, { color = null } = {}) {
             depthWrite: false
           });
 
-          let shapes = path.toShapes(true);
+          let shapes = path.toShapes(isCCW);
 
           for (let j = 0; j < shapes.length; j++) {
             let shape = shapes[j];
@@ -1587,29 +1587,30 @@ export default {
   addCollapseAnimation,
   addExplosionAnimation,
   addFadeIn,
+  addFadeOut,
   addGlitch,
   addJumpIn,
+  addLights,
   addShake2D,
   addTextFlyInAnimation,
+  addWipeAnimation,
   camera,
+  canvasDrawTriangle,
+  createObject,
+  createRect,
   createTriangle,
   flyIn,
   globalTimeline,
   jumpTo,
   loadSVG,
   moveCameraTo,
+  moveTo,
   newScene,
   pallete,
   randomInt,
   scene,
   setOpacity,
   TextMesh,
-  addLights,
-  addFadeOut,
-  createObject,
-  addWipeAnimation,
-  canvasDrawTriangle,
-  createRect,
 };
 
 export { THREE, gsap };
