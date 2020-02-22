@@ -28,7 +28,7 @@ const WIDTH = 1920 * RENDER_TARGET_SCALE;
 const HEIGHT = 1080 * RENDER_TARGET_SCALE;
 const AA_METHOD = "msaa";
 const ENABLE_MOTION_BLUR_PASS = false;
-const MOTION_BLUR_SAMPLES = 0;
+const MOTION_BLUR_SAMPLES = 32;
 
 var captureStatus;
 var globalTimeline = gsap.timeline({ onComplete: stopCapture });
@@ -1428,7 +1428,7 @@ function getCompoundBoundingBox(object3D) {
   return box;
 }
 
-async function loadSVG(url, { color = null, isCCW=true } = {}) {
+async function loadSVG(url, { color = null, isCCW = true } = {}) {
   return new Promise((resolve, reject) => {
     // instantiate a loader
     let loader = new SVGLoader();
@@ -1439,6 +1439,7 @@ async function loadSVG(url, { color = null, isCCW=true } = {}) {
       url,
       // called when the resource is loaded
       function(data) {
+        console.log(data);
         let paths = data.paths;
         let group = new THREE.Group();
 
@@ -1451,37 +1452,42 @@ async function loadSVG(url, { color = null, isCCW=true } = {}) {
             depthWrite: false
           });
 
-          let shapes = path.toShapes(isCCW);
+          const shapes = path.toShapes(isCCW);
 
-          for (let j = 0; j < shapes.length; j++) {
-            let shape = shapes[j];
-            let geometry = new THREE.ShapeBufferGeometry(shape);
-            let mesh = new THREE.Mesh(geometry, material);
-            group.add(mesh);
+          let geometry = new THREE.ShapeBufferGeometry(shapes);
+
+          let mesh = new THREE.Mesh(geometry, material);
+          group.add(mesh);
+          if (path.userData.node.id) {
+            mesh.name = path.userData.node.id;
           }
         }
 
+        // Get bounding box of the whole object
         const box = getCompoundBoundingBox(group);
-        const boxCenter = box.min.add(box.max).multiplyScalar(0.5);
-        const boxSize = box.max.sub(box.min);
+
+        const boxCenter = new THREE.Vector3();
+        box.getCenter(boxCenter);
+
+        const boxSize = new THREE.Vector3();
+        box.getSize(boxSize);
+
         const scale = 1.0 / Math.max(boxSize.x, boxSize.y, boxSize.z);
 
-        group.scale.multiplyScalar(scale);
-        group.scale.y *= -1;
+        group.children.forEach(subMesh => {
+          // Scale and translate geometry
+          subMesh.geometry.translate(-boxCenter.x, -boxCenter.y, -boxCenter.z);
+          subMesh.geometry.scale(scale, -scale, scale);
 
-        group.position.set(
-          -boxCenter.x * scale,
-          boxCenter.y * scale,
-          -boxCenter.z * scale
-        );
+          // Set center of the subMesh to (0, 0)
+          const center = new THREE.Vector3();
+          subMesh.geometry.boundingBox.getCenter(center);
 
-        const parentGroup = new THREE.Group();
-        parentGroup.add(group);
-        // scene.add(parentGroup)
+          subMesh.geometry.translate(-center.x, -center.y, -center.z);
+          subMesh.position.add(center);
+        });
 
-        // globalTimeline.add(flyIn(parentGroup))
-
-        resolve(parentGroup);
+        resolve(group);
       },
       // called when loading is in progresses
       function(xhr) {
@@ -1611,6 +1617,7 @@ export default {
   scene,
   setOpacity,
   TextMesh,
+  tl: globalTimeline
 };
 
 export { THREE, gsap };
