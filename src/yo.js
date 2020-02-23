@@ -28,7 +28,7 @@ const WIDTH = 1920 * RENDER_TARGET_SCALE;
 const HEIGHT = 1080 * RENDER_TARGET_SCALE;
 const AA_METHOD = "msaa";
 const ENABLE_MOTION_BLUR_PASS = false;
-const MOTION_BLUR_SAMPLES = 32;
+const MOTION_BLUR_SAMPLES = 1;
 
 var captureStatus;
 var globalTimeline = gsap.timeline({ onComplete: stopCapture });
@@ -65,6 +65,7 @@ let pallete = [
 ];
 
 var glitchPass;
+var gridHelper;
 
 let options = {
   /* Recording options */
@@ -100,6 +101,10 @@ function initCapture() {
 }
 
 function startCapture() {
+  if (gridHelper != null) {
+    gridHelper.visible = false;
+  }
+
   initCapture();
   capturer.start();
   globalTimeline.seek(0);
@@ -1088,12 +1093,25 @@ function createGrid({
   return group;
 }
 
-function addFadeIn(object3d, { duration = 0.5 } = {}) {
-  const tl = gsap.timeline({ defaults: { duration } });
+function addFadeIn(object3d, { duration = 0.5, ease = "power1.out" } = {}) {
+  const tl = gsap.timeline({ defaults: { duration, ease } });
 
-  if (object3d.material != null) {
+  const materials = new Set();
+  const getMaterialsRecursive = object3d => {
+    if (object3d.material != null) {
+      materials.add(object3d.material);
+    }
+    object3d.children.forEach(child => {
+      getMaterialsRecursive(child);
+    });
+  };
+
+  getMaterialsRecursive(object3d);
+
+  // console.log(materials);
+  materials.forEach(material => {
     tl.fromTo(
-      object3d.material,
+      material,
       {
         transparent: false,
         visible: false
@@ -1106,21 +1124,13 @@ function addFadeIn(object3d, { duration = 0.5 } = {}) {
     );
 
     tl.from(
-      object3d.material,
+      material,
       {
         opacity: 0,
-        onStart: () => {
-          object3d.visible = true;
-        },
         duration
       },
       "<"
     );
-  }
-
-  object3d.children.forEach(x => {
-    const tween = addFadeIn(x);
-    tl.add(tween, "<");
   });
 
   return tl;
@@ -1189,14 +1199,26 @@ function jumpTo(object3d, { x = 0, y = 0 }) {
   return tl;
 }
 
-function moveTo(object3d, { x = 0, y = 0 } = {}) {
-  let tl = gsap.timeline();
+function moveTo(object3d, { x = 0, y = 0, scale = 1.0 } = {}) {
+  let tl = gsap.timeline({
+    defaults: {
+      duration: 0.5,
+      ease: "expo.out"
+    }
+  });
   tl.to(object3d.position, {
     x,
-    y,
-    ease: "expo.out",
-    duration: 0.5
+    y
   });
+  tl.to(
+    object3d.scale,
+    {
+      x: object3d.scale.x * scale,
+      y: object3d.scale.y * scale,
+      z: object3d.scale.z * scale
+    },
+    "<"
+  );
   return tl;
 }
 
@@ -1439,7 +1461,6 @@ async function loadSVG(url, { color = null, isCCW = true } = {}) {
       url,
       // called when the resource is loaded
       function(data) {
-        console.log(data);
         let paths = data.paths;
         let group = new THREE.Group();
 
@@ -1577,6 +1598,23 @@ function newScene(initFunction) {
       });
     }
 
+    {
+      // Grid helper
+      const size = 20;
+      const divisions = 20;
+      const colorCenterLine = "#008800";
+      const colorGrid = "#888888";
+
+      gridHelper = new THREE.GridHelper(
+        size,
+        divisions,
+        colorCenterLine,
+        colorGrid
+      );
+      gridHelper.rotation.x = Math.PI / 2;
+      scene.add(gridHelper);
+    }
+
     // Start animation
     requestAnimationFrame(animate);
   })();
@@ -1587,6 +1625,114 @@ function newScene(initFunction) {
   captureStatus.id = "captureStatus";
   captureStatus.innerText = "stopped";
   document.body.appendChild(captureStatus);
+}
+
+function createArrow({
+  from = new THREE.Vector3(0, 0, 0),
+  to = new THREE.Vector3(0, 1, 0),
+  lineWidth = 0.25,
+  arrowEnd = true,
+  arrowStart = false,
+  color = 0xffff00
+} = {}) {
+  const direction = new THREE.Vector3();
+  direction.subVectors(to, from);
+  const halfLength = direction.length() * 0.5;
+  direction.subVectors(to, from).normalize();
+
+  const center = new THREE.Vector3();
+  center.addVectors(from, to).multiplyScalar(0.5);
+
+  const quaternion = new THREE.Quaternion(); // create one and reuse it
+  quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+
+  const group = new THREE.Group();
+
+  const material = new THREE.MeshBasicMaterial({ color });
+
+  if (0) {
+    const geometry = new THREE.CylinderBufferGeometry(
+      lineWidth,
+      lineWidth,
+      halfLength * 2,
+      32
+    );
+    const cylinder = new THREE.Mesh(geometry, material);
+    group.add(cylinder);
+  }
+
+  {
+    var geometry = new THREE.PlaneGeometry(lineWidth, halfLength * 2);
+
+    var plane = new THREE.Mesh(geometry, material);
+
+    group.add(plane);
+  }
+
+  if (0) {
+    var geometry = new THREE.ConeBufferGeometry(
+      lineWidth * 2,
+      lineWidth * 2,
+      32
+    );
+  }
+
+  for (let i = 0; i < 2; i++) {
+    if (i == 0 && !arrowStart) continue;
+    if (i == 1 && !arrowEnd) continue;
+
+    const geometry = new THREE.Geometry();
+    geometry.vertices = [
+      new THREE.Vector3(-lineWidth, 0, 0),
+      new THREE.Vector3(lineWidth, 0, 0),
+      new THREE.Vector3(0, lineWidth * 2, 0)
+    ];
+    geometry.faces.push(new THREE.Face3(0, 1, 2));
+
+    const mesh = new THREE.Mesh(geometry, material);
+    group.add(mesh);
+
+    if (i == 0) {
+      mesh.translateY(-halfLength);
+      mesh.rotation.z = Math.PI;
+    } else {
+      mesh.translateY(halfLength);
+    }
+  }
+
+  group.setRotationFromQuaternion(quaternion);
+  group.position.set(center.x, center.y, center.z);
+  scene.add(group);
+  return group;
+}
+
+function addObject() {}
+
+function addText(
+  text,
+  {
+    x = 0,
+    y = 0,
+    z = 0,
+    aniEnter = "fade",
+    aniExit = null,
+    color = 0xffffff
+  } = {}
+) {
+  const mesh = new TextMesh({ text, font: "en", size: 0.5, color });
+  mesh.position.set(x, y, z);
+
+  if (aniEnter == "fade") {
+    globalTimeline.add(addFadeIn(mesh));
+  }
+
+  if (aniExit == "fade") {
+    globalTimeline.add(addFadeIn(mesh, { ease: "power1.in" }).reverse(), ">1");
+  }
+
+  scene.add(mesh);
+
+  return mesh;
 }
 
 export default {
@@ -1617,7 +1763,9 @@ export default {
   scene,
   setOpacity,
   TextMesh,
-  tl: globalTimeline
+  tl: globalTimeline,
+  createArrow,
+  addText
 };
 
 export { THREE, gsap };
