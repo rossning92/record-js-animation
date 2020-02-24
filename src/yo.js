@@ -39,7 +39,7 @@ let composer;
 let scene;
 let camera;
 let cameraControls;
-let pallete = [
+let palette = [
   // '#1abc9c',
   // '#2ecc71',
   // '#3498db',
@@ -151,7 +151,7 @@ function setupScene(width, height) {
   }
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(pallete[0]);
+  scene.background = new THREE.Color(palette[0]);
 
   if (1) {
     camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 5000);
@@ -624,7 +624,7 @@ function createTextParticles(text = "Hello Codepen ♥") {
 
           var material = new THREE.MeshStandardMaterial({
             shading: THREE.FlatShading,
-            color: pallete[n % pallete.length],
+            color: palette[n % palette.length],
             transparent: false,
             opacity: 1,
             wireframe: false
@@ -794,6 +794,7 @@ function createRect({ color = 0xffff00 } = {}) {
 }
 
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader";
+import { TextureMatrix } from "pixi.js";
 function createLine3D({ color = 0xffffff, points = [], lineWidth = 0.1 } = {}) {
   if (points.length == 0) {
     points.push(new THREE.Vector3(-1.73, -1, 0));
@@ -804,6 +805,7 @@ function createLine3D({ color = 0xffffff, points = [], lineWidth = 0.1 } = {}) {
 
   let lineColor = new THREE.Color(0xffffff);
   let style = SVGLoader.getStrokeStyle(lineWidth, lineColor.getStyle());
+  style.strokeLineJoin = "round";
   let geometry = SVGLoader.pointsToStroke(points, style);
 
   let material = new THREE.MeshBasicMaterial({
@@ -1123,10 +1125,13 @@ function addFadeIn(object3d, { duration = 0.5, ease = "power1.out" } = {}) {
       "<"
     );
 
-    tl.from(
+    tl.fromTo(
       material,
       {
-        opacity: 0,
+        opacity: 0
+      },
+      {
+        opacity: 1,
         duration
       },
       "<"
@@ -1158,13 +1163,13 @@ function addFadeOut(object3d) {
   return tween;
 }
 
-function addJumpIn(object3d) {
+function addJumpIn(object3d, { ease = "elastic.out(1, 0.2)" } = {}) {
   const duration = 0.5;
 
   let tl = gsap.timeline();
   tl.from(object3d.position, {
-    y: object3d.position.y + 2,
-    ease: "elastic.out(1, 0.2)",
+    y: object3d.position.y + 1,
+    ease,
     duration
   });
 
@@ -1265,6 +1270,16 @@ function flyIn(
 
   tl.add(addFadeIn(object3d), "<");
 
+  return tl;
+}
+
+function addFlash(object3d, { repeat = 5, position = "+=0" } = {}) {
+  const tl = gsap.timeline();
+  for (let i = 0; i < repeat; i++) {
+    tl.add(addFadeIn(object3d));
+    tl.add(addFadeIn(object3d).reverse());
+  }
+  globalTimeline.add(tl, position);
   return tl;
 }
 
@@ -1716,23 +1731,265 @@ function addText(
     z = 0,
     aniEnter = "fade",
     aniExit = null,
-    color = 0xffffff
+    color = 0xffffff,
+    font = "en",
+    fontSize = 1.0
   } = {}
 ) {
-  const mesh = new TextMesh({ text, font: "en", size: 0.5, color });
+  const mesh = new TextMesh({
+    text,
+    font,
+    size: 0.5,
+    color,
+    size: fontSize
+  });
   mesh.position.set(x, y, z);
 
-  if (aniEnter == "fade") {
-    globalTimeline.add(addFadeIn(mesh));
-  }
-
-  if (aniExit == "fade") {
-    globalTimeline.add(addFadeIn(mesh, { ease: "power1.in" }).reverse(), ">1");
-  }
+  addAnime(mesh, { aniEnter, aniExit });
 
   scene.add(mesh);
 
   return mesh;
+}
+
+async function loadTexture(url) {
+  return new Promise((resolve, reject) => {
+    new THREE.TextureLoader().load(url, texture => {
+      resolve(texture);
+    });
+  });
+}
+
+function addAnime(
+  object3d,
+  { aniEnter = null, aniExit = null, aniPos = "+=0", animation = null } = {}
+) {
+  const tl = gsap.timeline();
+
+  if (aniEnter && aniEnter.includes("fade")) {
+    tl.add(addFadeIn(object3d));
+  }
+  if (aniEnter && aniEnter.includes("jump")) {
+    tl.add(addJumpIn(object3d));
+  }
+  if (aniEnter && aniEnter.includes("flip")) {
+    tl.from(object3d.rotation, { y: Math.PI * 4 }, "<");
+  }
+  if (aniEnter && aniEnter.includes("grow")) {
+    tl.from(object3d.scale, { x: 0.01, y: 0.01, z: 0.01 }, "<");
+  }
+
+  if (animation == "spin") {
+    tl.to(object3d.rotation, {
+      y: object3d.rotation.y + Math.PI * 2 * 4,
+      duration: 2,
+      ease: "none"
+    });
+  }
+
+  if (aniExit == "fade") {
+    tl.add(addFadeIn(object3d, { ease: "power1.in" }).reverse(), ">1");
+  }
+
+  globalTimeline.add(tl, aniPos);
+}
+
+function createTriangleVertices({ radius = 0.5 } = {}) {
+  const verts = [];
+  for (let i = 0; i < 3; i++) {
+    verts.push(
+      new THREE.Vector3(
+        radius * Math.sin(i * Math.PI * 0.33333 * 2),
+        radius * Math.cos(i * Math.PI * 0.33333 * 2),
+        0
+      )
+    );
+  }
+  return verts;
+}
+
+async function add(
+  obj,
+  {
+    x = 0,
+    y = 0,
+    z = 0,
+    position = null,
+    aniEnter = "fade",
+    aniExit = null,
+    animation = null,
+    color = 0xffffff,
+    scale = 1,
+    vertices = [],
+    wireframe = false,
+    outline = false,
+    outlineWidth = 0.1,
+    width = 1,
+    height = 1,
+    aniPos = "+=0",
+    parent = null,
+    lighting = false
+  } = {}
+) {
+  let material;
+
+  if (lighting) {
+    material = new THREE.MeshPhongMaterial({
+      color,
+      // emissive: 0x072534,
+      // side: THREE.DoubleSide,
+      flatShading: true
+      // transparent:
+    });
+  } else {
+    material = new THREE.MeshBasicMaterial({
+      side: THREE.DoubleSide,
+      color,
+      wireframe
+    });
+  }
+
+  let mesh;
+  if (obj.endsWith(".svg")) {
+    mesh = await loadSVG("/bitcoin.svg", { isCCW: false });
+    scene.add(mesh);
+  } else if (obj.endsWith(".png")) {
+    const texture = await loadTexture(obj);
+    texture.anisotropy = renderer.getMaxAnisotropy();
+    const material = new THREE.MeshBasicMaterial({
+      map: texture,
+      side: THREE.DoubleSide
+    });
+
+    const geometry = new THREE.PlaneGeometry(1, 1, 1, 1);
+    mesh = new THREE.Mesh(geometry, material);
+
+    const ratio = texture.image.width / texture.image.height;
+    if (ratio > 1) {
+      mesh.scale.y /= ratio;
+    } else {
+      mesh.scale.x *= ratio;
+    }
+  } else if (obj == "triangle") {
+    if (vertices.length == 0) {
+      vertices = createTriangleVertices();
+    }
+
+    if (outline) {
+      mesh = createLine3D({
+        points: vertices.concat(vertices[0]),
+        lineWidth: outlineWidth,
+        color
+      });
+    } else {
+      const geometry = new THREE.Geometry();
+      geometry.vertices.push(vertices[0], vertices[1], vertices[2]);
+      geometry.faces.push(new THREE.Face3(0, 1, 2));
+
+      mesh = new THREE.Mesh(geometry, material);
+    }
+  } else if (obj == "rect" || obj == "rectangle") {
+    const geometry = new THREE.PlaneGeometry(width, height);
+    mesh = new THREE.Mesh(geometry, material);
+  } else if (obj == "circle") {
+    const geometry = new THREE.CircleGeometry(0.5, 32);
+    mesh = new THREE.Mesh(geometry, material);
+  } else if (obj == "sphere") {
+    const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+    mesh = new THREE.Mesh(geometry, material);
+  }
+
+  mesh.scale.multiplyScalar(scale);
+  if (position != null) {
+    mesh.position.set(position.x, position.y, position.z);
+  } else {
+    mesh.position.set(x, y, z);
+  }
+
+  addAnime(mesh, { aniEnter, aniExit, aniPos, animation });
+
+  if (parent != null) {
+    parent.add(mesh);
+  } else {
+    scene.add(mesh);
+  }
+
+  return mesh;
+}
+
+function addGroup() {
+  const group = new THREE.Group();
+  scene.add(group);
+  return group;
+}
+
+function getBoundingBox(object3D) {
+  return new THREE.Box3().setFromObject(object3D);
+}
+
+function getQueryString(url) {
+  // get query string from url (optional) or window
+  var queryString = url ? url.split("?")[1] : window.location.search.slice(1);
+
+  // we'll store the parameters here
+  var obj = {};
+
+  // if query string exists
+  if (queryString) {
+    // stuff after # is not part of query string, so get rid of it
+    queryString = queryString.split("#")[0];
+
+    // split our query string into its component parts
+    var arr = queryString.split("&");
+
+    for (var i = 0; i < arr.length; i++) {
+      // separate the keys and the values
+      var a = arr[i].split("=");
+
+      // set parameter name and value (use 'true' if empty)
+      var paramName = a[0];
+      var paramValue = typeof a[1] === "undefined" ? true : a[1];
+
+      // (optional) keep case consistent
+      paramName = paramName.toLowerCase();
+      if (typeof paramValue === "string") {
+        // paramValue = paramValue.toLowerCase();
+        paramValue = decodeURIComponent(paramValue);
+      }
+
+      // if the paramName ends with square brackets, e.g. colors[] or colors[2]
+      if (paramName.match(/\[(\d+)?\]$/)) {
+        // create key if it doesn't exist
+        var key = paramName.replace(/\[(\d+)?\]/, "");
+        if (!obj[key]) obj[key] = [];
+
+        // if it's an indexed array e.g. colors[2]
+        if (paramName.match(/\[\d+\]$/)) {
+          // get the index value and add the entry at the appropriate position
+          var index = /\[(\d+)\]/.exec(paramName)[1];
+          obj[key][index] = paramValue;
+        } else {
+          // otherwise add the value to the end of the array
+          obj[key].push(paramValue);
+        }
+      } else {
+        // we're dealing with a string
+        if (!obj[paramName]) {
+          // if it doesn't exist, create property
+          obj[paramName] = paramValue;
+        } else if (obj[paramName] && typeof obj[paramName] === "string") {
+          // if property does exist and it's a string, convert it to an array
+          obj[paramName] = [obj[paramName]];
+          obj[paramName].push(paramValue);
+        } else {
+          // otherwise add the property
+          obj[paramName].push(paramValue);
+        }
+      }
+    }
+  }
+
+  return obj;
 }
 
 export default {
@@ -1758,14 +2015,21 @@ export default {
   moveCameraTo,
   moveTo,
   newScene,
-  pallete,
+  palette,
   randomInt,
   scene,
   setOpacity,
   TextMesh,
   tl: globalTimeline,
   createArrow,
-  addText
+  addText,
+  add,
+  addGroup,
+  getBoundingBox,
+  addFlash,
+  getQueryString,
+  addAnime: addAnime,
+  createTriangleVertices
 };
 
 export { THREE, gsap };
