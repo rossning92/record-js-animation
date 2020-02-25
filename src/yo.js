@@ -1791,7 +1791,9 @@ function addAnime(
     tl.add(addFadeIn(object3d, { ease: "power1.in" }).reverse(), ">1");
   }
 
-  globalTimeline.add(tl, aniPos);
+  if (tl.duration() > 0) {
+    globalTimeline.add(tl, aniPos);
+  }
 }
 
 function createTriangleVertices({ radius = 0.5 } = {}) {
