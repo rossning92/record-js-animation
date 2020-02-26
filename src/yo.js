@@ -1424,6 +1424,51 @@ function addExplosionAnimation(
   return tl;
 }
 
+function createExplosionAnimation(
+  objectGroup,
+  {
+    ease = "expo.out",
+    duration = 1.5,
+    rotationMin = 0,
+    rotationMax = Math.PI * 8,
+    radiusMin = 1,
+    radiusMax = 8,
+    stagger = 0
+  } = {}
+) {
+  const tl = gsap.timeline({
+    defaults: {
+      duration,
+      ease: ease
+    }
+  });
+
+  let delay = 0;
+  objectGroup.children.forEach(child => {
+    const r = radiusMin + (radiusMax - radiusMin) * rng();
+    const theta = rng() * 2 * Math.PI;
+    const x = r * Math.cos(theta);
+    const y = r * Math.sin(theta);
+
+    tl.fromTo(child.position, { x: 0, y: 0 }, { x, y }, delay);
+
+    const rotation = rotationMin + rng() * (rotationMax - rotationMin);
+    tl.fromTo(child.rotation, { z: 0 }, { z: rotation }, delay);
+
+    const targetScale = rng() * 0.5 + 0.5;
+    tl.fromTo(
+      child.scale,
+      { x: 0.001, y: 0.001, z: 0.001 },
+      { x: targetScale, y: targetScale, z: targetScale },
+      delay
+    );
+
+    delay += stagger;
+  });
+
+  return tl;
+}
+
 function addCollapseAnimation(objectGroup, { duration = 0.5 } = {}) {
   const tl = gsap.timeline({
     defaults: {
@@ -1776,7 +1821,11 @@ function addAnime(
     tl.from(object3d.rotation, { y: Math.PI * 4 }, "<");
   }
   if (aniEnter && aniEnter.includes("grow")) {
-    tl.from(object3d.scale, { x: 0.01, y: 0.01, z: 0.01 }, "<");
+    tl.from(
+      object3d.scale,
+      { x: 0.01, y: 0.01, z: 0.01, ease: "elastic.out" },
+      "<"
+    );
   }
 
   if (animation == "spin") {
@@ -1830,7 +1879,10 @@ async function add(
     height = 1,
     aniPos = "+=0",
     parent = null,
-    lighting = false
+    lighting = false,
+    ccw = true,
+    font = "en",
+    fontSize = 1.0
   } = {}
 ) {
   let material;
@@ -1853,7 +1905,7 @@ async function add(
 
   let mesh;
   if (obj.endsWith(".svg")) {
-    mesh = await loadSVG("/bitcoin.svg", { isCCW: false });
+    mesh = await loadSVG(obj, { isCCW: ccw });
     scene.add(mesh);
   } else if (obj.endsWith(".png")) {
     const texture = await loadTexture(obj);
@@ -1899,6 +1951,14 @@ async function add(
   } else if (obj == "sphere") {
     const geometry = new THREE.SphereGeometry(0.5, 32, 32);
     mesh = new THREE.Mesh(geometry, material);
+  } else if (typeof obj == "string") {
+    mesh = new TextMesh({
+      text: obj,
+      font,
+      size: 0.5,
+      color,
+      size: fontSize
+    });
   }
 
   mesh.scale.multiplyScalar(scale);
@@ -1994,6 +2054,17 @@ function getQueryString(url) {
   return obj;
 }
 
+function pause(t) {
+  globalTimeline.set({}, {}, "+=" + t.toString());
+}
+
+var seedrandom = require("seedrandom");
+var rng = seedrandom("hello.");
+
+function setSeed(val) {
+  rng = seedrandom(val);
+}
+
 export default {
   addCollapseAnimation,
   addExplosionAnimation,
@@ -2031,7 +2102,10 @@ export default {
   addFlash,
   getQueryString,
   addAnime: addAnime,
-  createTriangleVertices
+  createTriangleVertices,
+  pause,
+  createExplosionAnimation,
+  setSeed
 };
 
 export { THREE, gsap };

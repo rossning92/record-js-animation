@@ -107,6 +107,7 @@ yo.newScene(async () => {
       yo.tl.add(tl, "<");
     });
 
+    yo.pause(2);
     yo.tl.add(yo.addFadeOut(triangleMesh));
   }
 
