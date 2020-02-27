@@ -6,7 +6,12 @@ yo.newScene(async () => {
 
   yo.scene.background = 0;
 
-  await yo.add("toolbox.svg", { scale: 10, aniEnter: "grow,fade" });
+  const toolbox = await yo.add("toolbox.svg", {
+    scale: 10,
+    aniEnter: "grow,fade",
+  });
+  const g1 = toolbox.children.filter(x => x.name.includes("g1"))[0];
+  yo.tl.add(yo.moveTo(g1, { dy: 0.2, rotZ: 0.1 }));
 
   const funcNames = [
     "putchar()",
@@ -37,6 +42,7 @@ yo.newScene(async () => {
       radiusMin: 0,
       radiusMax: 6,
       stagger: 0.04
-    })
+    }),
+    "<"
   );
 });

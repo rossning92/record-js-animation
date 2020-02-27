@@ -1204,7 +1204,26 @@ function jumpTo(object3d, { x = 0, y = 0 }) {
   return tl;
 }
 
-function moveTo(object3d, { x = 0, y = 0, scale = 1.0 } = {}) {
+function moveTo(
+  object3d,
+  {
+    x = 0,
+    y = 0,
+    scale = 1.0,
+    dx = null,
+    dy = null,
+    rotX = null,
+    rotY = null,
+    rotZ = null
+  } = {}
+) {
+  if (dx != null) {
+    x = object3d.position.x + dx;
+  }
+  if (dy != null) {
+    y = object3d.position.y + dy;
+  }
+
   let tl = gsap.timeline({
     defaults: {
       duration: 0.5,
@@ -1215,6 +1234,20 @@ function moveTo(object3d, { x = 0, y = 0, scale = 1.0 } = {}) {
     x,
     y
   });
+
+  rotX == null ? object3d.rotation.x : rotX;
+  rotY == null ? object3d.rotation.y : rotY;
+  rotZ == null ? object3d.rotation.z : rotZ;
+  tl.to(
+    object3d.rotation,
+    {
+      x: rotX,
+      y: rotY,
+      z: rotZ
+    },
+    "<"
+  );
+
   tl.to(
     object3d.scale,
     {
@@ -1510,6 +1543,15 @@ function getCompoundBoundingBox(object3D) {
   return box;
 }
 
+function _getNodeName(node) {
+  if (!node) return "";
+  if (node.id) {
+    return _getNodeName(node.parentNode) + "/" + node.id;
+  } else {
+    return _getNodeName(node.parentNode);
+  }
+}
+
 async function loadSVG(url, { color = null, isCCW = true } = {}) {
   return new Promise((resolve, reject) => {
     // instantiate a loader
@@ -1522,7 +1564,8 @@ async function loadSVG(url, { color = null, isCCW = true } = {}) {
       // called when the resource is loaded
       function(data) {
         let paths = data.paths;
-        let group = new THREE.Group();
+
+        let parentGroup = new THREE.Group();
 
         for (let i = 0; i < paths.length; i++) {
           let path = paths[i];
@@ -1538,14 +1581,26 @@ async function loadSVG(url, { color = null, isCCW = true } = {}) {
           let geometry = new THREE.ShapeBufferGeometry(shapes);
 
           let mesh = new THREE.Mesh(geometry, material);
-          group.add(mesh);
-          if (path.userData.node.id) {
-            mesh.name = path.userData.node.id;
+          // group.add(mesh);
+          console.log();
+
+          const name = _getNodeName(path.userData.node);
+          if (name) {
+            let group = parentGroup.children.filter(x => x.name == name)[0];
+            if (!group) {
+              group = new THREE.Group();
+              group.name = name;
+              parentGroup.add(group);
+            }
+
+            group.add(mesh);
+          } else {
+            parentGroup.add(mesh);
           }
         }
 
         // Get bounding box of the whole object
-        const box = getCompoundBoundingBox(group);
+        const box = getCompoundBoundingBox(parentGroup);
 
         const boxCenter = new THREE.Vector3();
         box.getCenter(boxCenter);
@@ -1555,20 +1610,26 @@ async function loadSVG(url, { color = null, isCCW = true } = {}) {
 
         const scale = 1.0 / Math.max(boxSize.x, boxSize.y, boxSize.z);
 
-        group.children.forEach(subMesh => {
-          // Scale and translate geometry
-          subMesh.geometry.translate(-boxCenter.x, -boxCenter.y, -boxCenter.z);
-          subMesh.geometry.scale(scale, -scale, scale);
+        parentGroup.children.forEach(group => {
+          group.children.forEach(subMesh => {
+            // Scale and translate geometry
+            subMesh.geometry.translate(
+              -boxCenter.x,
+              -boxCenter.y,
+              -boxCenter.z
+            );
+            subMesh.geometry.scale(scale, -scale, scale);
 
-          // Set center of the subMesh to (0, 0)
-          const center = new THREE.Vector3();
-          subMesh.geometry.boundingBox.getCenter(center);
+            // Set center of the subMesh to (0, 0)
+            const center = new THREE.Vector3();
+            subMesh.geometry.boundingBox.getCenter(center);
 
-          subMesh.geometry.translate(-center.x, -center.y, -center.z);
-          subMesh.position.add(center);
+            subMesh.geometry.translate(-center.x, -center.y, -center.z);
+            subMesh.position.add(center);
+          });
         });
 
-        resolve(group);
+        resolve(parentGroup);
       },
       // called when loading is in progresses
       function(xhr) {
