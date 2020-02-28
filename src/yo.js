@@ -771,7 +771,7 @@ function canvasDrawTriangle() {
 
   // Filled triangle
   ctx.beginPath();
-  ctx.moveTo(10, 25);
+  ctx.createMoveToAnimation(10, 25);
   ctx.lineTo(50, 60);
   ctx.lineTo(45, 5);
   ctx.fill();
@@ -1153,14 +1153,7 @@ function setOpacity(object3d, opacity = 1.0) {
 }
 
 function addFadeOut(object3d) {
-  object3d.material.transparent = true;
-  const tween = gsap.to(object3d.material, {
-    opacity: 0,
-    onComplete: () => {
-      object3d.visible = false;
-    }
-  });
-  return tween;
+  return addFadeIn(object3d).reverse();
 }
 
 function addJumpIn(object3d, { ease = "elastic.out(1, 0.2)" } = {}) {
@@ -1204,7 +1197,7 @@ function jumpTo(object3d, { x = 0, y = 0 }) {
   return tl;
 }
 
-function moveTo(
+function createMoveToAnimation(
   object3d,
   {
     x = 0,
@@ -1230,23 +1223,11 @@ function moveTo(
       ease: "expo.out"
     }
   });
-  tl.to(object3d.position, {
-    x,
-    y
-  });
+  tl.to(object3d.position, { x, y });
 
-  rotX == null ? object3d.rotation.x : rotX;
-  rotY == null ? object3d.rotation.y : rotY;
-  rotZ == null ? object3d.rotation.z : rotZ;
-  tl.to(
-    object3d.rotation,
-    {
-      x: rotX,
-      y: rotY,
-      z: rotZ
-    },
-    "<"
-  );
+  if (rotX != null) tl.to(object3d.rotation, { x: rotX }, "<");
+  if (rotY != null) tl.to(object3d.rotation, { y: rotY }, "<");
+  if (rotZ != null) tl.to(object3d.rotation, { z: rotZ }, "<");
 
   tl.to(
     object3d.scale,
@@ -1888,8 +1869,23 @@ function addAnime(
       "<"
     );
   }
+  if (aniEnter && aniEnter.includes("typing")) {
+    object3d.children.forEach(x => {
+      tl.fromTo(
+        x,
+        {
+          visible: false
+        },
+        {
+          visible: true,
+          ease: "steps(1)",
+          duration: 0.1
+        }
+      );
+    });
+  }
 
-  if (animation == "spin") {
+  if (animation && animation == "spin") {
     tl.to(object3d.rotation, {
       y: object3d.rotation.y + Math.PI * 2 * 4,
       duration: 2,
@@ -1920,12 +1916,15 @@ function createTriangleVertices({ radius = 0.5 } = {}) {
   return verts;
 }
 
-async function add(
+async function addAsync(
   obj,
   {
     x = 0,
     y = 0,
     z = 0,
+    rotX = 0,
+    rotY = 0,
+    rotZ = 0,
     position = null,
     aniEnter = "fade",
     aniExit = null,
@@ -1943,7 +1942,9 @@ async function add(
     lighting = false,
     ccw = true,
     font = "en",
-    fontSize = 1.0
+    fontSize = 1.0,
+    arrowFrom = new THREE.Vector3(0, 0, 0),
+    arrowTo = new THREE.Vector3(0, 1, 0)
   } = {}
 ) {
   let material;
@@ -2012,6 +2013,12 @@ async function add(
   } else if (obj == "sphere") {
     const geometry = new THREE.SphereGeometry(0.5, 32, 32);
     mesh = new THREE.Mesh(geometry, material);
+  } else if (obj == "arrow") {
+    mesh = createArrow({
+      from: arrowFrom,
+      to: arrowTo,
+      color
+    });
   } else if (typeof obj == "string") {
     mesh = new TextMesh({
       text: obj,
@@ -2028,6 +2035,7 @@ async function add(
   } else {
     mesh.position.set(x, y, z);
   }
+  mesh.rotation.set(rotX, rotY, rotZ);
 
   addAnime(mesh, { aniEnter, aniExit, aniPos, animation });
 
@@ -2147,7 +2155,7 @@ export default {
   jumpTo,
   loadSVG,
   moveCameraTo,
-  moveTo,
+  createMoveToAnimation,
   newScene,
   palette,
   randomInt,
@@ -2157,7 +2165,7 @@ export default {
   tl: globalTimeline,
   createArrow,
   addText,
-  add,
+  addAsync,
   addGroup,
   getBoundingBox,
   addFlash,

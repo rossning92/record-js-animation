@@ -15,7 +15,7 @@ yo.newScene(async () => {
 
   yo.tl.set({}, {}, "0");
 
-  const tri = await yo.add("triangle", {
+  const tri = await yo.addAsync("triangle", {
     color: yo.palette[1],
     scale: 1,
     aniEnter: null,

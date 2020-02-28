@@ -38,7 +38,7 @@ yo.newScene(async () => {
     );
   });
 
-  yo.tl.add(yo.moveTo(gpu, { x: -6, scale: 0.8 }), ">-2");
+  yo.tl.add(yo.createMoveToAnimation(gpu, { x: -6, scale: 0.8 }), ">-2");
 
   // Shader
 
@@ -48,5 +48,5 @@ yo.newScene(async () => {
 
   yo.tl.add(yo.addJumpIn(shader));
 
-  yo.tl.add(yo.moveTo(shader, { x: 6, scale: 0.8 }), '>+2');
+  yo.tl.add(yo.createMoveToAnimation(shader, { x: 6, scale: 0.8 }), '>+2');
 });

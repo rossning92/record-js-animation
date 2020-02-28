@@ -11,7 +11,7 @@ yo.newScene(async () => {
   const startX = (width / cols - width) * 0.5;
 
   for (let i = 0; i < cols; i++) {
-    const obj = await yo.add(imgs[i], { aniEnter: "jump", scale: 5 });
+    const obj = await yo.addAsync(imgs[i], { aniEnter: "jump", scale: 5 });
     obj.position.set(i * gap + startX, 0, 0);
   }
 

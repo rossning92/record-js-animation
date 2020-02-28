@@ -41,7 +41,7 @@ yo.newScene(async () => {
 
   yo.tl.add(yo.addFadeIn(gpu));
 
-  yo.tl.add(yo.moveTo(gpu, { scale: 1.5 }), "<");
+  yo.tl.add(yo.createMoveToAnimation(gpu, { scale: 1.5 }), "<");
 
   {
     const arrowH = yo.createArrow({

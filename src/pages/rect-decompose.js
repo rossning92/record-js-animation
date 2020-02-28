@@ -11,7 +11,7 @@ yo.newScene(async () => {
 
   yo.scene.background = 0;
 
-  await yo.add("rect", {
+  await yo.addAsync("rect", {
     color: yo.palette[1],
     scale: 10,
     aniExit: "fade"
@@ -22,7 +22,7 @@ yo.newScene(async () => {
     const outline = true;
     const z = 0.01;
 
-    await yo.add("triangle", {
+    await yo.addAsync("triangle", {
       vertices: [VERTS[0], VERTS[1], VERTS[2]],
       outline,
       outlineWidth: 0.1,
@@ -32,7 +32,7 @@ yo.newScene(async () => {
       aniExit: "fade"
     });
 
-    await yo.add("triangle", {
+    await yo.addAsync("triangle", {
       vertices: [VERTS[1], VERTS[2], VERTS[3]],
       outline,
       outlineWidth: 0.1,
@@ -49,7 +49,7 @@ yo.newScene(async () => {
     const circleGroup = yo.addGroup();
 
     for (let i = 0; i < 3; i++) {
-      await yo.add("sphere", {
+      await yo.addAsync("sphere", {
         x: VERTS[i].x,
         y: VERTS[i].y,
         z: 0.02,
@@ -67,7 +67,7 @@ yo.newScene(async () => {
   
   yo.tl.set({}, {}, "+=0");
 
-  const tri = await yo.add("triangle", { color: yo.palette[1], scale: 10 });
+  const tri = await yo.addAsync("triangle", { color: yo.palette[1], scale: 10 });
 
   for (let k = 0; k < 4; k++) {
     const tl = gsap.timeline();

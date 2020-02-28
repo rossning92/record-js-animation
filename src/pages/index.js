@@ -147,7 +147,7 @@ yo.newScene(async () => {
     yo.globalTimeline.add(yo.addCollapseAnimation(explosionGroup), "<");
 
     yo.globalTimeline.add(
-      yo.moveTo(root, {
+      yo.createMoveToAnimation(root, {
         x: TRI_X,
         y: TRI_Y
       }),
