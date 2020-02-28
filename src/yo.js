@@ -1200,8 +1200,8 @@ function jumpTo(object3d, { x = 0, y = 0 }) {
 function createMoveToAnimation(
   object3d,
   {
-    x = 0,
-    y = 0,
+    x = null,
+    y = null,
     scale = 1.0,
     dx = null,
     dy = null,
@@ -1210,12 +1210,11 @@ function createMoveToAnimation(
     rotZ = null
   } = {}
 ) {
-  if (dx != null) {
-    x = object3d.position.x + dx;
-  }
-  if (dy != null) {
-    y = object3d.position.y + dy;
-  }
+  if (x == null) x = object3d.position.x;
+  if (y == null) y = object3d.position.y;
+
+  if (dx != null) x = object3d.position.x + dx;
+  if (dy != null) y = object3d.position.y + dy;
 
   let tl = gsap.timeline({
     defaults: {
@@ -1562,11 +1561,10 @@ async function loadSVG(url, { color = null, isCCW = true } = {}) {
           let geometry = new THREE.ShapeBufferGeometry(shapes);
 
           let mesh = new THREE.Mesh(geometry, material);
-          // group.add(mesh);
-          console.log();
 
           const name = _getNodeName(path.userData.node);
           if (name) {
+            // console.log(name)
             let group = parentGroup.children.filter(x => x.name == name)[0];
             if (!group) {
               group = new THREE.Group();

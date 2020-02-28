@@ -1,16 +1,14 @@
 import yo, { gsap, THREE } from "../yo";
 
 yo.newScene(async () => {
-  const gpu = await yo.loadSVG("/gpu.svg", { isCCW: false });
-  gpu.scale.multiplyScalar(10);
-  yo.scene.add(gpu);
+  yo.scene.background = 0;
 
-  yo.tl.add(yo.addJumpIn(gpu));
+  const gpu = await yo.addAsync("gpu.svg", { ccw: false, scale: 10 });
 
-  const fans = gpu.children.filter(x => x.name.startsWith("fan"));
+  let fans = gpu.children.filter(x => x.name.includes("fan"));
   fans.forEach(x => {
     yo.tl.to(
-      x.rotation,
+      x.children[0].rotation,
       {
         z: -Math.PI * 2,
         duration: 1,
@@ -19,7 +17,7 @@ yo.newScene(async () => {
       0
     );
     yo.tl.to(
-      x.rotation,
+      x.children[0].rotation,
       {
         z: -Math.PI * 2 * 6,
         duration: 2,
@@ -28,7 +26,7 @@ yo.newScene(async () => {
       ">"
     );
     yo.tl.to(
-      x.rotation,
+      x.children[0].rotation,
       {
         z: -Math.PI * 2 * 8,
         duration: 1,
@@ -38,15 +36,24 @@ yo.newScene(async () => {
     );
   });
 
-  yo.tl.add(yo.createMoveToAnimation(gpu, { x: -6, scale: 0.8 }), ">-2");
+  yo.tl.add(yo.createMoveToAnimation(gpu, { x: -6 }), ">-2");
 
-  // Shader
+  const cpu = await yo.addAsync("cpu.svg", {
+    scale: 6,
+    aniPos: 2,
+    x: 6
+    // aniEnter: null
+  });
 
-  const shader = await yo.loadSVG("/shader-file.svg");
-  shader.scale.multiplyScalar(10);
-  yo.scene.add(shader);
+  yo.tl.add(yo.createMoveToAnimation(cpu, { rotZ: Math.PI * 2 }), "<");
 
-  yo.tl.add(yo.addJumpIn(shader));
+  // // Shader
 
-  yo.tl.add(yo.createMoveToAnimation(shader, { x: 6, scale: 0.8 }), '>+2');
+  // const shader = await yo.loadSVG("/shader-file.svg");
+  // shader.scale.multiplyScalar(10);
+  // yo.scene.add(shader);
+
+  // yo.tl.add(yo.addJumpIn(shader));
+
+  // yo.tl.add(yo.createMoveToAnimation(shader, { x: 6, scale: 0.8 }), ">+2");
 });
