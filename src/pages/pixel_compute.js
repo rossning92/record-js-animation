@@ -48,10 +48,10 @@ yo.newScene(async () => {
       from: new THREE.Vector3(-7, 6.5, 0),
       to: new THREE.Vector3(7, 6.5, 0),
       arrowStart: true,
-      color: yo.pallete[3]
+      color: yo.palette[3]
     });
 
-    const text = new yo.TextMesh({ text: "1080", font: "en", size: 0.5 });
+    const text = new yo.TextMesh({ text: "1920", font: "en", size: 0.5 });
     text.position.x = -0.5;
     text.rotation.z = Math.PI / 2;
     arrowH.add(text);
@@ -64,18 +64,21 @@ yo.newScene(async () => {
       from: new THREE.Vector3(8.5, -1.5, 0),
       to: new THREE.Vector3(8.5, 5.5, 0),
       arrowStart: true,
-      color: yo.pallete[3]
+      color: yo.palette[3]
     });
 
-    const text = new yo.TextMesh({ text: "1920", font: "en", size: 0.5 });
+    const text = new yo.TextMesh({ text: "1080", font: "en", size: 0.5 });
     text.position.x = 1;
     arrowV.add(text);
 
     yo.tl.add(yo.addFadeIn(arrowV));
   }
 
-  yo.addText("1080 x 1920 = 2,073,600", { aniExit: "fade" });
-  yo.addText("1080 x 1920 x 60 = 124,416,000", { aniExit: "fade" });
+  yo.addText("1920 x 1080 = 2,073,600", { aniExit: "fade", fontSize: 0.5 });
+  yo.addText("1920 x 1080 x 60 = 124,416,000", {
+    aniExit: "fade",
+    fontSize: 0.5
+  });
 
   if (0) {
     const texture = new THREE.TextureLoader().load("nfs.png");

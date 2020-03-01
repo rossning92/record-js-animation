@@ -151,7 +151,7 @@ function setupScene(width, height) {
   }
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(palette[0]);
+  scene.background = 0;
 
   if (1) {
     camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 5000);
@@ -771,7 +771,7 @@ function canvasDrawTriangle() {
 
   // Filled triangle
   ctx.beginPath();
-  ctx.createMoveToAnimation(10, 25);
+  ctx.moveTo(10, 25);
   ctx.lineTo(50, 60);
   ctx.lineTo(45, 5);
   ctx.fill();
@@ -2132,6 +2132,33 @@ function setSeed(val) {
   rng = seedrandom(val);
 }
 
+function random() {
+  return rng();
+}
+
+function getGridLayoutPositions({
+  rows = 1,
+  cols = 1,
+  width = 25,
+  height = 14
+} = {}) {
+  const gapX = width / cols;
+  const gapY = height / rows;
+
+  const startX = (width / cols - width) * 0.5;
+  const startY = (height / rows - height) * 0.5;
+
+  const results = [];
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      results.push(
+        new THREE.Vector3(j * gapX + startX, -(i * gapY + startY), 0)
+      );
+    }
+  }
+  return results;
+}
+
 export default {
   addCollapseAnimation,
   addExplosionAnimation,
@@ -2172,7 +2199,9 @@ export default {
   createTriangleVertices,
   pause,
   createExplosionAnimation,
-  setSeed
+  setSeed,
+  getGridLayoutPositions,
+  random
 };
 
 export { THREE, gsap };

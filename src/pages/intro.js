@@ -3,7 +3,7 @@ import yo, { gsap, THREE } from "../yo";
 yo.newScene(async () => {
   yo.scene.background = 0;
 
-  const gpu = await yo.addAsync("gpu.svg", { ccw: false, scale: 10 });
+  const gpu = await yo.addAsync("gpu.svg", { ccw: false, scale: 8 });
 
   let fans = gpu.children.filter(x => x.name.includes("fan"));
   fans.forEach(x => {
@@ -36,16 +36,25 @@ yo.newScene(async () => {
     );
   });
 
-  yo.tl.add(yo.createMoveToAnimation(gpu, { x: -6 }), ">-2");
+  yo.tl.add(yo.createMoveToAnimation(gpu, { x: -6 }), ">-3");
 
   const cpu = await yo.addAsync("cpu.svg", {
     scale: 6,
-    aniPos: 2,
+    aniPos: 1,
     x: 6
     // aniEnter: null
   });
 
   yo.tl.add(yo.createMoveToAnimation(cpu, { rotZ: Math.PI * 2 }), "<");
+
+  await yo.addAsync("pc.svg", {
+    scale: 10
+
+    // aniEnter: null
+  });
+
+  yo.tl.add(yo.createMoveToAnimation(cpu, { x: -3.5, y: 0, rotZ:Math.PI * 8, scale: 0.0001, z: -1 }), "<");
+  yo.tl.add(yo.createMoveToAnimation(gpu, { x: -3.5, y: 0, rotZ:Math.PI * 8, scale: 0.0001, z: -1 }), "<");
 
   // // Shader
 

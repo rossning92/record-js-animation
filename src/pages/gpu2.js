@@ -8,7 +8,7 @@ yo.newScene(async () => {
   yo.tl.add(yo.addFadeIn(gpu));
 
   const gpuCores = new THREE.Group();
-//   gpuCores.scale.y *= -1;
+  //   gpuCores.scale.y *= -1;
   yo.scene.add(gpuCores);
   gpuCores.scale.multiplyScalar(0.6);
 
@@ -17,8 +17,10 @@ yo.newScene(async () => {
       if (i <= 1 && i >= -1) continue;
 
       const gpuCore = await yo.loadSVG("/gpu-core.svg", { isCCW: false });
-      gpuCore.children.forEach(x => {
-        x.material.depthWrite = true;
+      gpuCore.traverse(x => {
+        if (x.material) {
+          x.material.depthWrite = true;
+        }
       });
 
       gpuCore.position.set(j, i, 0.01);

@@ -1,6 +1,6 @@
 import yo, { gsap, THREE } from "../yo";
 
 yo.newScene(async () => {
-  yo.addAsync("bitcoin.png", { aniEnter: "jump,flip,grow" });
+  await yo.addAsync("bitcoin.png", { aniEnter: "jump,flip,grow", scale: 8 });
   yo.tl.set({}, {}, "+=1");
 });

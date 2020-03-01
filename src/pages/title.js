@@ -42,7 +42,7 @@ yo.newScene(async () => {
     });
     rightBracket.position.x = center.x + size.x * 0.5 + MARGIN;
 
-    yo.addFlash(leftBracket, { position: 0 });
-    yo.addFlash(rightBracket, { position: 0 });
+    yo.addFlash(leftBracket, { position: 0, repeat: 10 });
+    yo.addFlash(rightBracket, { position: 0, repeat: 10 });
   }
 });
