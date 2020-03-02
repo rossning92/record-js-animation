@@ -1,4 +1,4 @@
-import yo, { gsap, THREE } from "../yo";
+import yo, { gsap, THREE } from "../src/yo";
 
 function TextureAnimator(texture, tilesHoriz, tilesVert, numTiles, fps) {
   // note: texture passed by reference, will be updated by the update function.

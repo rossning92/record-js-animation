@@ -1,5 +1,5 @@
 import yo, { THREE, gsap } from "../src/yo";
-import icon_files from "../icons.json";
+import icon_files from "./icons.json";
 
 ///////////////////////////////////////////////////////////
 // Main animation

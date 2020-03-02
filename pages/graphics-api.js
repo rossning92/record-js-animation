@@ -1,4 +1,4 @@
-import yo, { gsap, THREE } from "../yo";
+import yo, { gsap, THREE } from "../src/yo";
 
 async function genBinary() {
   const group = yo.addGroup();
@@ -50,44 +50,20 @@ yo.newScene(async () => {
   yo.scene.background = 0;
 
   const imgs = ["opengl.png", "directx.png", "vulkan.png"];
-  const lang = ["GLSL", "  HLSL", "SPIR-V"];
+  
 
-  const positions = yo.getGridLayoutPositions({ rows: 2, cols: 3, height: 6 });
+  const positions = yo.getGridLayoutPositions({ rows: 1, cols: 3, height: 6 });
   console.log(positions);
 
   for (let i = 0; i < 3; i++) {
-    const obj = await yo.addAsync(imgs[i], {
+    await yo.addAsync(imgs[i], {
       aniEnter: "jump",
       scale: 6,
       x: positions[i].x,
       y: positions[i].y,
       z: positions[i].z
     });
-
-    await yo.addAsync(lang[i], {
-      x: positions[i + 3].x,
-      y: positions[i + 3].y,
-      z: positions[i + 3].z,
-      fontSize: 0.7,
-      color: yo.palette[3]
-    });
-
-    if (i == 1) {
-      await yo.addAsync("Cg/", {
-        x: positions[i + 3].x - 1.8,
-        y: positions[i + 3].y + 0.1,
-        z: positions[i + 3].z,
-        fontSize: 0.7,
-        color: yo.palette[3]
-      });
-    }
   }
 
-  const matrix = await genBinary();
-  matrix.position.x = 8;
-  matrix.position.y = -5;
-
-  yo.tl.add(yo.addFadeIn(matrix));
-
-  yo.tl.set({}, {}, "+=5");
+  yo.tl.set({}, {}, "+=2");
 });

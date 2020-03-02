@@ -1,4 +1,4 @@
-import yo, { gsap, THREE } from "../yo";
+import yo, { gsap, THREE } from "../src/yo";
 import { Vector3 } from "three";
 
 yo.newScene(async () => {

@@ -1,4 +1,4 @@
-import yo, { gsap, THREE } from "../yo";
+import yo, { gsap, THREE } from "../src/yo";
 
 yo.newScene(async () => {
   const gpu = await yo.loadSVG("/gpu-main.svg", { isCCW: false });

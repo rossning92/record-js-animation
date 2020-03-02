@@ -1,4 +1,4 @@
-import yo, { THREE, gsap } from "../yo";
+import yo, { THREE, gsap } from "../src/yo";
 
 yo.newScene(() => {
   yo.scene.background = 0;
