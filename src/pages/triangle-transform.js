@@ -22,7 +22,7 @@ yo.newScene(async () => {
     lighting: false
   });
 
-  for (let k = 0; k < 5; k++) {
+  for (let k = 0; k < 10; k++) {
     const tl = gsap.timeline();
 
     for (let i = 0; i < 3; i++) {

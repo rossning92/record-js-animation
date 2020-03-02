@@ -5,8 +5,11 @@ import icon_files from "../icons.json";
 // Main animation
 
 yo.newScene(async () => {
+  yo.setSeed('helloworld')
+  yo.scene.background = new THREE.Color(yo.palette[0]);
+
   const TRI_X = -5;
-  const TRI_Y = 1.5;
+  const TRI_Y = 2.0;
 
   async function createIconParticles() {
     const explosionGroup = new THREE.Group();
@@ -17,12 +20,12 @@ yo.newScene(async () => {
       const icons = await Promise.all(
         icon_files.map(file =>
           yo.loadSVG("/icons/" + file, {
-            color: yo.randomInt(0, 1) == 0 ? yo.pallete[1] : yo.pallete[2]
+            color: yo.randomInt(0, 1) == 0 ? yo.palette[1] : yo.palette[2],
           })
         )
       );
       icons.forEach(mesh => {
-        mesh.scale.multiplyScalar(0.2);
+        mesh.scale.multiplyScalar(0.004);
         explosionGroup.add(mesh);
       });
     } else {
@@ -34,11 +37,11 @@ yo.newScene(async () => {
         const randomParticleType = yo.randomInt(0, 1);
         if (randomParticleType == 0) {
           mesh = yo.createTriangleOutline({
-            color: yo.pallete[2]
+            color: yo.palette[2]
           });
         } else {
           mesh = yo.createTriangle({
-            color: yo.pallete[1]
+            color: yo.palette[1]
           });
         }
         mesh.scale.set(0.05, 0.05, 0.05);
@@ -49,17 +52,17 @@ yo.newScene(async () => {
     for (var i = 0; i < explosionGroup.children.length; i++) {
       const mesh = explosionGroup.children[i];
       {
-        const radiusMin = 1;
+        const radiusMin = 1.5;
         const radiusMax = 6;
 
-        const r = radiusMin + (radiusMax - radiusMin) * Math.random();
-        const theta = Math.random() * 2 * Math.PI;
+        const r = radiusMin + (radiusMax - radiusMin) * yo.random();
+        const theta = yo.random() * 2 * Math.PI;
         const x = r * Math.cos(theta);
         const y = r * Math.sin(theta);
         mesh.position.set(x, y, 0);
-        mesh.scale.multiplyScalar(Math.random() * 0.5 + 0.5);
+        mesh.scale.multiplyScalar(yo.random() * 0.5 + 0.5);
       }
-      mesh.rotation.z = Math.random() * Math.PI * 4;
+      mesh.rotation.z = yo.random() * Math.PI * 4;
     }
 
     return explosionGroup;
@@ -95,7 +98,7 @@ yo.newScene(async () => {
 
     const slash = new yo.TextMesh({
       text: "/",
-      color: yo.pallete[3]
+      color: yo.palette[3]
     });
     slash.position.set(0.1, 1.5, 1);
     codeSnippetGroup.add(slash);
@@ -127,6 +130,8 @@ yo.newScene(async () => {
     root.add(explosionGroup);
 
     {
+      yo.globalTimeline.add(yo.addFadeIn(explosionGroup), "<");
+
       yo.globalTimeline.add(
         yo.addExplosionAnimation(explosionGroup, {
           duration: 3
@@ -144,6 +149,7 @@ yo.newScene(async () => {
       ">"
     );
 
+    yo.globalTimeline.add(yo.addFadeOut(explosionGroup), "<");
     yo.globalTimeline.add(yo.addCollapseAnimation(explosionGroup), "<");
 
     yo.globalTimeline.add(
@@ -174,10 +180,10 @@ yo.newScene(async () => {
     for (let i = 0; i < 6; i++) {
       const tri = yo.createTriangle({
         opacity: 0.12,
-        color: yo.pallete[1]
+        color: yo.palette[1]
       });
-      tri.position.x += (Math.random() - 0.5) * 0.5;
-      tri.position.y += (Math.random() - 0.5) * 0.5;
+      tri.position.x += (yo.random() - 0.5) * 0.5;
+      tri.position.y += (yo.random() - 0.5) * 0.5;
       tri.position.z = 0.01 * i;
 
       tri.scale.y *= -1;
@@ -189,18 +195,18 @@ yo.newScene(async () => {
 
   if (1) {
     const tri = await yo.loadSVG("/logo.svg", {
-      isCCW: false,
-      color: yo.pallete[1]
+      isCCW: true,
+      color: yo.palette[1]
     });
     yo.setOpacity(tri, 0.6);
-    tri.scale.multiplyScalar(2.0);
+    tri.scale.multiplyScalar(3.0);
 
     logo.add(tri);
   }
 
   // const textMesh = new yo.TextMesh({
   //   text: "编程",
-  //   color: yo.pallete[4],
+  //   color: yo.palette[4],
   //   font: "zh",
   //   size: 1.3
   //   // material,
@@ -227,15 +233,21 @@ yo.newScene(async () => {
     let bigTriangles = new THREE.Group();
     bigTriangles.position.set(TRI_X, TRI_Y, -0.1);
     root.add(bigTriangles);
-    for (let i = 0; i < 6; i++) {
-      const tri = yo.createTriangle({
+    for (let i = 0; i < 8; i++) {
+      // const tri = yo.createTriangle({
+      //   opacity: 0.15,
+      //   color: yo.palette[1]
+      // });
+      const tri = await yo.addAsync("circle", {
+        color: yo.palette[1],
         opacity: 0.15,
-        color: yo.pallete[1]
+        aniEnter: null
       });
+
       tri.position.z = 0.1 * i + 1;
 
-      tri.scale.x = i * 3 + 7;
-      tri.scale.y = i * 3 + 7;
+      tri.scale.x = i * 5 + 7;
+      tri.scale.y = i * 5 + 7;
       tri.scale.y *= -1;
 
       bigTriangles.add(tri);
@@ -270,20 +282,24 @@ yo.newScene(async () => {
 
     {
       const explosionGroup2 = await createIconParticles();
-      explosionGroup2.position.z = -1;
       yo.setOpacity(explosionGroup2, 0.3);
+      explosionGroup2.position.z = -1;
+      // yo.setOpacity(explosionGroup2, 0.3);
       explosionGroup2.scale.set(2, 2, 2);
       root.add(explosionGroup2);
-      yo.globalTimeline.add(yo.addFadeIn(explosionGroup2), "<");
+      yo.globalTimeline.add(
+        yo.addFadeIn(explosionGroup2, { opacity: 0.3 }),
+        "<"
+      );
 
       const tlIconMoving = gsap.timeline();
       explosionGroup2.children.forEach(x => {
         tlIconMoving.to(
           x.position,
           {
-            x: Math.random() * 20 - 10,
-            y: Math.random() * 10 - 5,
-            duration: 10,
+            x: yo.random() * 20 - 10,
+            y: yo.random() * 10 - 5,
+            duration: 15,
             ease: "none"
           },
           0
@@ -309,9 +325,10 @@ yo.newScene(async () => {
 
     const textMesh = new yo.TextMesh({
       text: "编程三分钟",
-      color: yo.pallete[4],
+      color: yo.palette[4],
       font: "zh",
-      size: 1.5
+      size: 1.5,
+      letterSpacing: 0.1
       // material,
     });
 
@@ -324,9 +341,10 @@ yo.newScene(async () => {
   {
     const mesh = new yo.TextMesh({
       text: "CODING IN 3 MINUTES",
-      color: yo.pallete[3],
+      color: yo.palette[3],
       font: "en",
-      size: 0.6
+      size: 0.6,
+      letterSpacing: 0.08
       // material,
     });
     mesh.position.set(0, -1, 0.5);
@@ -338,9 +356,9 @@ yo.newScene(async () => {
   {
     const mesh = new yo.TextMesh({
       text: "奇乐编程学院",
-      color: yo.pallete[4],
+      color: yo.palette[4],
       font: "zh",
-      size: 0.9,
+      size: 0.6,
       letterSpacing: 0.5
       // material,
     });
@@ -356,7 +374,9 @@ yo.newScene(async () => {
       ">"
     );
 
-    yo.globalTimeline.add(yo.addGlitch(), ">");
+    yo.globalTimeline.add(yo.addGlitch(), ">-0.5");
+
+    yo.globalTimeline.add(yo.addGlitch(), ">0.5");
   }
 
   // createAnimatedLines()

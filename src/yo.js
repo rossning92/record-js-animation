@@ -23,6 +23,7 @@ import Stats from "three/examples/jsm/libs/stats.module.js";
 
 gsap.ticker.remove(gsap.updateRoot);
 
+const ENABLE_GLITCH_PASS = false;
 const RENDER_TARGET_SCALE = 1;
 const WIDTH = 1920 * RENDER_TARGET_SCALE;
 const HEIGHT = 1080 * RENDER_TARGET_SCALE;
@@ -104,6 +105,10 @@ function startCapture() {
   if (gridHelper != null) {
     gridHelper.visible = false;
   }
+
+  start = null;
+  gsap.ticker.remove(gsap.updateRoot);
+  gsap.updateRoot(0);
 
   initCapture();
   capturer.start();
@@ -228,7 +233,7 @@ function setupScene(width, height) {
     // alert();
   }
 
-  if (0) {
+  if (ENABLE_GLITCH_PASS) {
     glitchPass = new GlitchPass();
     composer.addPass(glitchPass);
   }
@@ -1095,7 +1100,10 @@ function createGrid({
   return group;
 }
 
-function addFadeIn(object3d, { duration = 0.5, ease = "power1.out" } = {}) {
+function addFadeIn(
+  object3d,
+  { duration = 0.5, ease = "power1.out", opacity = 1.0 } = {}
+) {
   const tl = gsap.timeline({ defaults: { duration, ease } });
 
   const materials = new Set();
@@ -1112,18 +1120,19 @@ function addFadeIn(object3d, { duration = 0.5, ease = "power1.out" } = {}) {
 
   // console.log(materials);
   materials.forEach(material => {
-    tl.fromTo(
-      material,
-      {
-        transparent: false,
-        visible: false
-      },
-      {
-        transparent: true,
-        visible: true
-      },
-      "<"
-    );
+    material.transparent = true;
+
+    // tl.fromTo(
+    //   material,
+    //   {
+    //     transparent: false,
+    //   },
+    //   {
+    //     transparent: true,
+    //     duration: 0,
+    //   },
+    //   "<"
+    // );
 
     tl.fromTo(
       material,
@@ -1131,7 +1140,7 @@ function addFadeIn(object3d, { duration = 0.5, ease = "power1.out" } = {}) {
         opacity: 0
       },
       {
-        opacity: 1,
+        opacity,
         duration
       },
       "<"
@@ -1928,6 +1937,7 @@ async function addAsync(
     aniExit = null,
     animation = null,
     color = 0xffffff,
+    opacity = 1.0,
     scale = 1,
     vertices = [],
     wireframe = false,
@@ -1959,6 +1969,8 @@ async function addAsync(
     material = new THREE.MeshBasicMaterial({
       side: THREE.DoubleSide,
       color,
+      transparent: opacity < 1.0 ? true : false,
+      opacity,
       wireframe
     });
   }
